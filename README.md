@@ -1,0 +1,4 @@
+lattice
+=======
+
+A jQuery plugin.
