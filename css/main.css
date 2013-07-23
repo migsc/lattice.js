@@ -1,0 +1,36 @@
+#plugin-example-1 #container{
+}
+
+#plugin-example-1 .slide{
+	width: 500px;
+	height: 400px;
+}
+
+#plugin-example-1 .slide h2{
+	text-align: center;
+	padding:30px;
+}
+
+#plugin-example-1 .slide-1{
+	background-color: #9DFFFF;
+}
+
+#plugin-example-1 .slide-2{
+	background-color: #FFAD9D;
+}
+
+#plugin-example-1 .slide-3{
+	background-color: #B1FF9D;
+}
+
+#plugin-example-1 .slide-4{
+	background-color: #FFF39D;
+}
+
+#plugin-example-1 .slide-5{
+	background-color: #E79DFF;
+}
+
+#plugin-example-1 .slide-6{
+	background-color: #FDB74F;
+}
