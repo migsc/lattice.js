@@ -1,5 +1,6 @@
 /*!
- * jQuery Lattice Plugin
+ * Lattice v0.1
+ * A jQuery plugin to assemble organize HTML elements in a grid fashion and do other neat things.
  * Original author: @chateloinus
  * Licensed under the MIT license
  */
@@ -7,18 +8,21 @@
 
 (function($) {
     
-    $.fn.lattice = function(options) {
-
-        // set default options
-        var defaults = {
-            startSelector: ">:first-child",
-            speed : 3000,
-            pause : 40000,
-            transition : 'fade'
-        },
+    $.fn.lattice = function(config) {
 
         // Take the options that the user selects, and merge them with defaults.
-        options = $.extend(defaults, options);
+        var options = $.extend({}, {
+            startSelector: ">:first-child",
+            speed : 1000,
+            pause : 3000,
+            transition : 'fade',
+            thumbnailWidth : 15,
+            thumbnailHeight: 15,
+            thumbnailSpacing: 3,
+            defaultThumbnail : '<div class="lattice-thumbnail"></div>',
+            defaultThumbnailEmpty: '<div class"lattice-thumbnail empty"></div>'
+        }, config);
+
         
         // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
         // This will check for that, and if it is smaller, it increases it to just about the options.speed.
@@ -30,25 +34,13 @@
             // cache "this."
             var $this = $(this);
 
-            // Wrap "this" in a div with a class of "slider-wrap."
-            $this.wrap('<div class="slider-wrap" />');
-
-            // Set the width to a really high number. Adjusting the "left" css values, so need to set positioning.
-            $this.css({
-                'width' : '99999px',
-                'position' : 'relative',
-                'padding' : 0,
-                'float': 'left',
-                'width': '500px',
-                'height': '400px',
-                'overflow': 'hidden',
-            });
-
-            var slides = {
+            theGrid = {
                 list: [],
-                gridCols: 0,
-                gridRows: 0,
                 grid: [],
+                gridRows: getMaxData($this, "row"),
+                gridCols: getMaxData($this, "col"),
+                gridOrder: getMaxData($this, "order"),
+                thumbnailMap: '<div class="lattice-thumbnail-map"></div>',
                 active:{
                     row: null,
                     col: null
@@ -56,78 +48,126 @@
                 next: null,
             };
 
+            // Wrap "this" in a div with a class and set some styles
+            // Set the width to a really high number. Adjusting the "left" css values, so need to set positioning.
+            $this.wrap('<div class="lattice-wrap" />').css({
+                'width' : '99999px',
+                'position' : 'relative',
+                'padding' : 0,
+                'width': '500px',
+                'height': '400px',
+                'overflow': 'hidden',
+            });
+
+            $('.lattice-wrap').css({
+                'position' : 'relative',
+            });
+
+            //Add the thumbnail map
+            $(theGrid.thumbnailMap).appendTo('.lattice-wrap').css({
+                'border': 'solid 4px #A7A1A1',
+                'background': 'whitesmoke',
+                'opacity': '0.7',
+                'position': 'absolute',
+                'bottom': '15px',
+                'right': '15px',
+            }).width(function(){
+                return ( options.thumbnailWidth + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridCols + 1);
+            }).height(function(){
+                return ( options.thumbnailHeight + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridRows + 1);
+            });
+
+            console.log(theGrid);
+
             //Set the active slide
             var $active = $this.find(options.startSelector);
             $active.toggleClass("active");
-            slides.active.row = parseInt($active.attr("data-row"));
-            slides.active.col = parseInt($active.attr("data-col"));
+            theGrid.active.row = parseInt($active.data("row"));
+            theGrid.active.col = parseInt($active.data("col"));
 
-            $this.children().each(function(i){
-
-                if(slides.gridRows < $(this).attr("data-row")) slides.gridRows = $(this).attr("data-row");
-                if(slides.gridCols < $(this).attr("data-col")) slides.gridCols = $(this).attr("data-col");
-
-                slides.list.push({
-                    element: this,
-                    order: $(this).attr("data-order"),
-                    html: $('<div>').append($(this).clone()).html(),
-                    row: parseInt($(this).attr("data-row")),
-                    col: parseInt($(this).attr("data-col")),
-                    topRef: false,
-                    bottomRef: false,
-                    leftRef: false,
-                    rightRef: false
-                });
-
-            });
-            
-            //Fill two dimensional grid array with default values
-            for(var rows = 0; rows <= slides.gridRows; rows++){
-                slides.grid[rows] = [];    
-                for(var cols = 0; cols <= slides.gridCols; cols++){ 
-                    slides.grid[rows][cols] = false;    
+            //Build the grid
+            for(var rows = 0; rows <= theGrid.gridRows; rows++){
+                theGrid.grid[rows] = [];
+                for(var cols = 0; cols <= theGrid.gridCols; cols++){
+                    var $reference = $("[data-row=" + rows + "][data-col=" + cols + "]"),
+                        clearValue = ( cols == theGrid.gridCols ) ? "right" : "none";
+                    if($reference.length == 0){
+                        theGrid.grid[rows][cols] = false;
+                        $(options.defaultThumbnailEmpty).appendTo(".lattice-thumbnail-map").css({
+                            'clear': clearValue,
+                            'display':'block',
+                            'background':'none',
+                            'float': 'left',
+                            'width': options.thumbnailWidth + 'px',
+                            'height': options.thumbnailHeight + 'px',
+                            'margin': options.thumbnailSpacing + 'px'
+                        });
+                        console.log(options.defaultThumbnailEmpty);
+                    } else if(true) {
+                        var referenceHtml = $('<div>').append($reference.clone()).html();
+                        html2canvas(referenceHtml, {
+                            allowTaint: true,
+                            letterRendering: true,
+                            width: options.thumbnailWidth,
+                            height: options.thumbnailHeight,
+                            onrendered: function(canvas) {
+                                // canvas is the final rendered <canvas> element
+                                console.log(referenceHtml);
+                                console.log(canvas);
+                                theGrid.grid[rows][cols] = {
+                                    element: $reference,
+                                    order: $reference.data("order"),
+                                    html: referenceHtml,
+                                    row: parseInt($reference.data("row")),
+                                    col: parseInt($reference.data("col")),
+                                    thumbnail: canvas
+                                }
+                                $(canvas).addClass('lattice-thumbnail').appendTo(".lattice-thumbnail-map").css({
+                                    'clear': clearValue,
+                                    'display': 'block',
+                                    'float': 'left',
+                                    'width': options.thumbnailWidth + 'px',
+                                    'height': options.thumbnailHeight + 'px',
+                                    'margin': options.thumbnailSpacing + 'px'
+                                }).wrap(function(){
+                                    return '<a class="lattice-link" href="#' 
+                                        + theGrid.grid[rows][cols].row
+                                        + '-' 
+                                        + theGrid.grid[rows][cols].col
+                                        + '"" ></a>';
+                                });
+                            }
+                        });
+                    } else {
+                        theGrid.grid[rows][cols] = {
+                            element: $reference,
+                            order: $reference.data("order"),
+                            html: $('<div>').append($reference.clone()).html(),
+                            row: parseInt($reference.data("row")),
+                            col: parseInt($reference.data("col"))
+                        }
+                        $(options.defaultThumbnail).appendTo(".lattice-thumbnail-map").css({
+                            'clear': clearValue,
+                            'display': 'block',
+                            'float': 'left',
+                            'background-color': '#A7A1A1',
+                            'width': options.thumbnailWidth + 'px',
+                            'height': options.thumbnailHeight + 'px',
+                            'margin': options.thumbnailSpacing + 'px'
+                        }).wrap(function(){
+                            return '<a class="lattice-link" href="#' 
+                                + theGrid.grid[rows][cols].row
+                                + '-' 
+                                + theGrid.grid[rows][cols].col
+                                + '"" ></a>';
+                        });
+                    }
                 }    
             }
 
-            //Insert panels into the appropriate spots in the grid
-            console.log(slides.list);
-            $.each(slides.list, function(index, cell) {
-                slides.grid[cell.row][cell.col] = cell;
-            });
+            //Draw the grid
 
-            //Insert references
-            $.each(slides.list, function(index, cell) {
-
-                //Set up reference
-                if(cell.row > 0){
-                    slides.grid[cell.row][cell.col].topRef = slides.grid[cell.row-1][cell.col];
-                } else {
-                    slides.grid[cell.row][cell.col].topRef = false;
-                }
-
-                //Set down reference
-                if(cell.row < slides.gridRows){
-                    slides.grid[cell.row][cell.col].bottomRef = slides.grid[cell.row+1][cell.col];
-                } else {
-                    slides.grid[cell.row][cell.col].bottomRef = false;
-                }
-
-                //Set left reference
-                if(cell.col > 0){
-                    slides.grid[cell.row][cell.col].leftRef = slides.grid[cell.row][cell.col-1];
-                } else {
-                    slides.grid[cell.row][cell.col].leftRef = false;
-                }
-
-                //Set right reference
-                if(cell.col < slides.gridCols){
-                    slides.grid[cell.row][cell.col].rightRef = slides.grid[cell.row][cell.col+1];
-                } else {
-                    slides.grid[cell.row][cell.col].rightRef = false;
-                }
-
-            });
-            console.log(slides.grid);
+            console.log(theGrid.grid);
 
             // If the user chose the "slide" transition...
             if(options.transition === 'slide') {
@@ -140,14 +180,14 @@
                     'display': 'none'
                 });
                 
-                $('.slider-wrap').css({
+                $('.lattice-wrap').css({
                     'width' : $this.children().width(),
                     'overflow' : 'hidden',
                 });
-                $('.slider-wrap .active').show();
+                $('.lattice-wrap .active').show();
             }
 
-            console.log(slides);
+            console.log(theGrid);
             
             // If the user instead chose the "slide" transition, call the slide function.
             if(options.transition === 'slide') slide(); 
@@ -174,15 +214,15 @@
                 $current.removeClass('active').animate(animOptions[0], options.speed);
                 $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], options.speed);
                 
-                slides.active.col = $target.attr("data-col");
-                slides.active.row = $target.attr("data-row");
+                theGrid.active.col = $target.data("col");
+                theGrid.active.row = $target.data("row");
             }
 
             function slide() {
                 setInterval(function() {
-                    var activeRow = parseInt($(".active").attr("data-row")),
-                        activeCol = parseInt($(".active").attr("data-row")),
-                        activeOrder = parseInt($(".active").attr("data-order")),
+                    var activeRow = parseInt($(".active").data("row")),
+                        activeCol = parseInt($(".active").data("row")),
+                        activeOrder = parseInt($(".active").data("order")),
                         maxOrder = $this.children().length - 1;
 
                     var $target = $("[data-order=" + ( activeOrder + 1 ) + "]"),
@@ -207,13 +247,13 @@
 
                     var direction = "left";
 
-                    if(parseInt($target.attr("data-row")) > activeRow) {
+                    if(parseInt($target.data("row")) > activeRow) {
                         direction = "bottom";
-                    } else if(parseInt($target.attr("data-row")) < activeRow) {
+                    } else if(parseInt($target.data("row")) < activeRow) {
                         direction = "top";
-                    } else if(parseInt($target.attr("data-col")) > activeCol) {
+                    } else if(parseInt($target.data("col")) > activeCol) {
                         direction = "right";
-                    } else if(parseInt($target.attr("data-col")) < activeCol) {
+                    } else if(parseInt($target.data("col")) < activeCol) {
                         direction = "left";
                     }
 
@@ -222,10 +262,6 @@
 
                 }, options.pause);
             } // end slide
-
-            function convertCssToInt( measurement ){
-                return parseInt(measurement.replace("px",""));
-            }
 
             function createGrid(length) {
                 var arr = new Array(length || 0),
@@ -239,8 +275,18 @@
                 return arr;
             }
 
+            function getMaxData($parent, name){
+                return  $parent.children().map(function(){
+                            return parseInt($(this).data(name));
+                        }).get().sort(function(a, b) {
+                            return b - a;
+                        })[0];
+            }
+
         }); // end each     
-    
+        
+        return this;
+
     } // End plugin. Go eat cake.
     
 })(jQuery);

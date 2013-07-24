@@ -1,36 +1,53 @@
-#plugin-example-1 #container{
+p{
+	font-size: 16px;
+	font-weight: bold;
+	letter-spacing: 2px;
+}
+
+#plugin-example-1 #container, #plugin-example-1{
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	margin: 0;
 }
 
 #plugin-example-1 .slide{
 	width: 500px;
 	height: 400px;
+	width: 100%;
+	height: 100%;
 }
 
 #plugin-example-1 .slide h2{
-	text-align: center;
-	padding:30px;
 }
 
-#plugin-example-1 .slide-1{
+#plugin-example-1 .slide-blue{
 	background-color: #9DFFFF;
 }
 
-#plugin-example-1 .slide-2{
+#plugin-example-1 .slide-red{
 	background-color: #FFAD9D;
 }
 
-#plugin-example-1 .slide-3{
+#plugin-example-1 .slide-green{
 	background-color: #B1FF9D;
 }
 
-#plugin-example-1 .slide-4{
+#plugin-example-1 .slide-yellow{
 	background-color: #FFF39D;
 }
 
-#plugin-example-1 .slide-5{
+#plugin-example-1 .slide-purple{
 	background-color: #E79DFF;
 }
 
-#plugin-example-1 .slide-6{
+#plugin-example-1 .slide-orange{
 	background-color: #FDB74F;
+}
+
+.text-container{
+	width: 95%;
+	height: 80%;
+	margin-left: auto;
+	margin-right:; auto;
 }
