@@ -5,7 +5,6 @@
 		<link rel="stylesheet" href="css/bootstrap-responsive.min.css"/>
 		<link rel="stylesheet" href="css/main.css"/>
     	<script src="jquery.min.js"></script>
-    	<script src="html2canvas.js"></script>
     	<script src="lattice.jquery.js"></script>
 	</head>  
 	<body>
@@ -19,7 +18,7 @@
 					</div>
 				</div>
 
-				<div class="slide slide-green" data-order="1" data-row="1" data-col="2">
+				<div class="slide slide-green" data-order="1" data-row="1" data-col="2" data-travel="north,east">
 					<div class="text-container">
 						<h2>Two</h2>
 						<p>The desert was the apotheosis of all deserts, huge, standing to the sky for what looked like eternity in all directions.</p>
@@ -190,12 +189,6 @@
 					speed : 2000,
             		pause : 3000
 				});
-				html2canvas(document.getElementById('gunslinger-1'), {
-				  onrendered: function(canvas) {
-				    $(".canvas-test").append(canvas);
-				  }
-				});
-				
 			});
 		</script>
 	</body>

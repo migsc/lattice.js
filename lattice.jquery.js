@@ -23,6 +23,14 @@
             defaultThumbnailEmpty: '<div class"lattice-thumbnail empty"></div>'
         }, config);
 
+        //Define the directions that can be taken
+        var directions = {
+            north: false,
+            south: false,
+            east: false,
+            west: false
+        };
+
         
         // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
         // This will check for that, and if it is smaller, it increases it to just about the options.speed.
@@ -37,6 +45,7 @@
             theGrid = {
                 list: [],
                 grid: [],
+                currentPath: [],
                 gridRows: getMaxData($this, "row"),
                 gridCols: getMaxData($this, "col"),
                 gridOrder: getMaxData($this, "order"),
@@ -45,7 +54,7 @@
                     row: null,
                     col: null
                 },
-                next: null,
+                next: null
             };
 
             // Wrap "this" in a div with a class and set some styles
@@ -103,48 +112,18 @@
                             'margin': options.thumbnailSpacing + 'px'
                         });
                         console.log(options.defaultThumbnailEmpty);
-                    } else if(true) {
-                        var referenceHtml = $('<div>').append($reference.clone()).html();
-                        html2canvas(referenceHtml, {
-                            allowTaint: true,
-                            letterRendering: true,
-                            width: options.thumbnailWidth,
-                            height: options.thumbnailHeight,
-                            onrendered: function(canvas) {
-                                // canvas is the final rendered <canvas> element
-                                console.log(referenceHtml);
-                                console.log(canvas);
-                                theGrid.grid[rows][cols] = {
-                                    element: $reference,
-                                    order: $reference.data("order"),
-                                    html: referenceHtml,
-                                    row: parseInt($reference.data("row")),
-                                    col: parseInt($reference.data("col")),
-                                    thumbnail: canvas
-                                }
-                                $(canvas).addClass('lattice-thumbnail').appendTo(".lattice-thumbnail-map").css({
-                                    'clear': clearValue,
-                                    'display': 'block',
-                                    'float': 'left',
-                                    'width': options.thumbnailWidth + 'px',
-                                    'height': options.thumbnailHeight + 'px',
-                                    'margin': options.thumbnailSpacing + 'px'
-                                }).wrap(function(){
-                                    return '<a class="lattice-link" href="#' 
-                                        + theGrid.grid[rows][cols].row
-                                        + '-' 
-                                        + theGrid.grid[rows][cols].col
-                                        + '"" ></a>';
-                                });
-                            }
-                        });
                     } else {
                         theGrid.grid[rows][cols] = {
                             element: $reference,
                             order: $reference.data("order"),
                             html: $('<div>').append($reference.clone()).html(),
                             row: parseInt($reference.data("row")),
-                            col: parseInt($reference.data("col"))
+                            col: parseInt($reference.data("col")),
+                            visited: false,
+                            north: null,
+                            south: null,
+                            east: null,
+                            west: null
                         }
                         $(options.defaultThumbnail).appendTo(".lattice-thumbnail-map").css({
                             'clear': clearValue,
@@ -165,9 +144,41 @@
                 }    
             }
 
-            //Draw the grid
-
             console.log(theGrid.grid);
+
+            //Define available paths for each grid
+            for(var rows = 0; rows <= theGrid.gridRows; rows++){
+                for(var cols = 0; cols <= theGrid.gridCols; cols++){
+                    if(theGrid.grid[rows][cols]){
+                        var $reference = $("[data-row=" + rows + "][data-col=" + cols + "]");
+                        var travelParams = $reference.data("travel");
+                        theGrid.grid[rows][cols].north = false;
+                        theGrid.grid[rows][cols].south = false;
+                        theGrid.grid[rows][cols].east = false;
+                        theGrid.grid[rows][cols].west = false;
+                        if (travelParams){
+                            $.each(travelParams.split(","), function(index, value){
+                                theGrid.grid[rows][cols][value] = true;
+                            });
+                        } else {
+                            if( (cols+1) <= theGrid.gridCols && theGrid.grid[rows][cols+1] !== false){
+                                theGrid.grid[rows][cols].east = true;
+                            }
+                            if( (rows+1) <= theGrid.gridRows && theGrid.grid[rows+1][cols] !== false) {
+                                theGrid.grid[rows][cols].south = true;
+                            }
+                            if( (cols-1) >= 0 && theGrid.grid[rows][cols-1] !== false) {
+                                theGrid.grid[rows][cols].west = true;
+                            }
+                            if( (rows-1) >= 0 && theGrid.grid[rows-1][cols] !== false) {
+                                theGrid.grid[rows][cols].north = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            
 
             // If the user chose the "slide" transition...
             if(options.transition === 'slide') {
@@ -190,7 +201,9 @@
             console.log(theGrid);
             
             // If the user instead chose the "slide" transition, call the slide function.
-            if(options.transition === 'slide') slide(); 
+            //if(options.transition === 'slide') slide(); 
+
+            console.log(solveGrid(theGrid.grid[0][2], theGrid.grid[5][0], theGrid.grid))
 
             function travelTo(target, direction) {
                 var $target = target,
@@ -281,6 +294,116 @@
                         }).get().sort(function(a, b) {
                             return b - a;
                         })[0];
+            }
+
+            function solveGrid(start, end, grid){
+                console.log("Starting solver.");
+                var path = [];
+                console.log("Path initialized");
+                if ( solveGridHelper( start, end, grid, path) != null ) {
+                    console.log("Found a solution. Returning path.")
+                    path.reverse;
+                    return path;
+                }
+
+                console.log("Solution not found! Returning null.")
+                return null;
+            }
+
+            function solveGridHelper(start, end, grid,  path){
+
+                console.log("Currently at " + start.row + ":" + start.col);
+
+                //Check if we're already at the goal
+                if(coordsAreEqual(start, end)){
+                    console.log("We've reached the end!");
+                    grid[start.row][start.col].visited =  true;
+                    path.push(grid[start.row][start.col]);
+                    return path;
+                }
+
+                console.log("Checking East at " + start.row + ":" + (start.col + 1));
+
+                //Check if East is open and not visited
+                if(grid[start.row][start.col].east && !grid[start.row][start.col+1].visited && grid[start.row][start.col+1]) {
+                    console.log("Room is open. Going East.");
+                    grid[start.row][start.col].visited = true;
+                    if( solveGridHelper({
+                                row: start.row, 
+                                col: start.col+1
+                            }, end, grid, path ) != null ){
+
+                        path.push(grid[start.row][start.col]);
+                        return path;
+                    
+                    }
+                }
+
+                console.log("Closed.");
+                console.log("Checking South at " + (start.row + 1) + ":" + start.col);
+
+                //Check if South is open and not visited
+                if(grid[start.row][start.col].south && !grid[start.row+1][start.col].visited && grid[start.row+1][start.col]) {
+                    console.log("Room is open. Going South.");
+                    grid[start.row][start.col].visited = true;
+                    if( solveGridHelper({
+                                row: start.row+1, 
+                                col: start.col
+                            }, end, grid, path ) != null ){
+
+                        path.push(grid[start.row][start.col]);
+                        return path;
+
+                    }                    
+                }
+
+                console.log("Closed.");
+                console.log("Checking West at " + start.row + ":" + (start.col - 1));
+
+                //Check if West is open and not visited
+                if(grid[start.row][start.col].west && !grid[start.row][start.col-1].visited && grid[start.row][start.col-1]) {
+                    console.log("Room is open. Going West.");
+                    grid[start.row][start.col].visited = true;
+                    if( solveGridHelper({
+                                row: start.row, 
+                                col: start.col-1
+                            }, end, grid, path ) != null ){
+
+                        path.push(grid[start.row][start.col]);
+                        return path;
+                    
+                    }
+                }
+
+                console.log("Closed.");
+                console.log("Checking North at " + (start.row - 1) + ":" + start.col);
+
+                //Check if North is open and not visited
+                if(grid[start.row][start.col].north && !grid[start.row-1][start.col].visited && grid[start.row-1][start.col]) {
+                    console.log("Room is open. Going North.");
+                    grid[start.row][start.col].visited = true;
+                    if( solveGridHelper({
+                                row: start.row-1, 
+                                col: start.col
+                            }, end, grid, path ) != null ){
+
+                        path.push(grid[start.row][start.col]);
+                        return path;
+                    
+                    }
+                }
+
+                console.log("Closed.");
+                console.log("Reached a dead end.");
+                //If we get here, it's a dead end!
+                return null;
+            }
+
+            function coordsAreEqual(coordOne, coordTwo){
+                if(coordOne.row == coordTwo.row && coordOne.col == coordTwo.col){
+                    return true;
+                }
+                return false;
             }
 
         }); // end each     
