@@ -201,7 +201,7 @@
             console.log(theGrid);
             
             // If the user instead chose the "slide" transition, call the slide function.
-            //if(options.transition === 'slide') slide(); 
+            if(options.transition === 'slide') slide(); 
 
             console.log(solveGrid(theGrid.grid[0][2], theGrid.grid[0][2], theGrid.grid));
 
