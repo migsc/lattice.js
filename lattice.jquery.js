@@ -86,13 +86,13 @@
                 return ( options.thumbnailHeight + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridRows + 1);
             });
 
-            console.log(theGrid);
 
             //Set the active slide
             var $active = $this.find(options.startSelector);
             $active.toggleClass("active");
             theGrid.active.row = parseInt($active.data("row"));
             theGrid.active.col = parseInt($active.data("col"));
+            updateActiveThumbnail(theGrid.active.row, theGrid.active.col);
 
             //Build the grid
             for(var rows = 0; rows <= theGrid.gridRows; rows++){
@@ -203,7 +203,35 @@
             // If the user instead chose the "slide" transition, call the slide function.
             //if(options.transition === 'slide') slide(); 
 
-            console.log(solveGrid(theGrid.grid[0][2], theGrid.grid[5][0], theGrid.grid))
+            console.log(solveGrid(theGrid.grid[0][2], theGrid.grid[0][2], theGrid.grid));
+
+            $(".lattice-link").click(function(e){
+                e.preventDefault();
+                var coords = function(){ 
+                        var hrefValue = $(this).attr('href');
+                        hrefValue = hrefValue.replace("#", "");
+                        return hrefValue.split("-");
+                    };
+                var path =  solveGrid({
+                                row: theGrid.active.row,
+                                col: theGrid.active.col
+                            }, theGrid.grid[coords[0]][coords[1]], theGrid.grid);
+                if (path.length == 1 || !path ){
+                    //todo
+                    return;
+                }
+                return;
+            });
+
+            function updateActiveThumbnail(row, col){
+                var selector = ".lattice-thumbnail[href=#" + row + "-" + col + "]";
+                $(selector).toggleClass(".lattice-thumbnail-active");
+            }
+
+            function updateActivePanel(row, col){
+                theGrid.active.row =  row;
+                theGrid.active.col = col;
+            }
 
             function travelTo(target, direction) {
                 var $target = target,
@@ -302,7 +330,7 @@
                 console.log("Path initialized");
                 if ( solveGridHelper( start, end, grid, path) != null ) {
                     console.log("Found a solution. Returning path.")
-                    path.reverse;
+                    path.reverse();
                     return path;
                 }
 
