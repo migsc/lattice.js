@@ -12,8 +12,6 @@ p{
 }
 
 #plugin-example-1 .slide{
-	width: 500px;
-	height: 400px;
 	width: 100%;
 	height: 100%;
 }

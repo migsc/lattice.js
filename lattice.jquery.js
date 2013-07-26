@@ -25,6 +25,9 @@
             eastArrowHtml:          '<div style="top:50%;right:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent;border-left: 20px solid rgb(167, 161, 161);"></div>',
             southArrowHtml:         '<div style="left:50%;bottom:15px;position:absolute;opacity:0.4;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:20px solid rgb(167, 161, 161);"></div>',
             westArrowHtml:          '<div style="top:50%;left:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent; border-right:20px solid rgb(167, 161, 161); "></div>',
+            sliderWidth: '500px',
+            sliderHeight: '400px',
+            fullScreen: false,
         }, config);
 
         // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
@@ -49,18 +52,27 @@
                     row: null,
                     col: null
                 },
-                next: null
+                inMotion: false,
+                containerContext: $this.context              
             };
 
             // Wrap "this" in a div with a class and set some styles
             // Set the width to a really high number. Adjusting the "left" css values, so need to set positioning.
             $this.wrap('<div class="lattice-wrap" />').css({
-                'width' : '99999px',
                 'position' : 'relative',
-                'padding' : 0,
-                'width': '500px',
-                'height': '400px',
+                'width': options.sliderWidth,
+                'height': options.sliderHeight,
                 'overflow': 'hidden',
+            });
+
+            if(options.fullScreen) {
+                activateFullScreen(this);
+            }
+
+            $(window).resize(function(){
+                if(options.fullScreen){
+                    activateFullScreen(theGrid.containerContext);
+                }
             });
 
             $('.lattice-wrap').css({
@@ -201,6 +213,9 @@
 
             $(".lattice-adjacent-link").click(function(e){
                 e.preventDefault();
+                if(theGrid.inMotion) return;
+                else theGrid.inMotion = true;
+
                 var hrefValue = $(this).attr('href'),
                     path = [theGrid.grid[theGrid.active.row][theGrid.active.col]];
                 
@@ -237,12 +252,14 @@
                 console.log(path);
 
                 slideOn(path, false);
-                
+
                 return;
             });
 
             $(".lattice-grid-link").click(function(e){
                 e.preventDefault();
+                if(theGrid.inMotion) return;
+                else theGrid.inMotion = true;
 
                 var hrefValue = $(this).attr('href');
                 hrefValue = hrefValue.replace("#", "");
@@ -288,6 +305,8 @@
 
                     }, pause);
                 }
+
+                theGrid.inMotion = false;
             }
 
             function slideTo(fromNode, toNode, prevNode){
@@ -465,6 +484,17 @@
                         theGrid.grid[rows][cols].visited = false;
                     }
                 }
+            }
+
+            function activateFullScreen(context){
+                $(context).css({
+                    'width': '100%',
+                    'height': '100%'
+                });
+                $(".lattice-wrap").css({
+                    'width': window.innerWidth + 'px',
+                    'height': $(window).height() + 'px'
+                });
             }
 
             
