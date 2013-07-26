@@ -378,17 +378,45 @@
                     return path;
                 }
 
+                var generallyTo = {
+                        north : start.row > end.row,
+                        east : start.col < end.col,
+                        south : start.row < end.row,
+                        west : start.col > end.col
+                    };
+
+
                 var compass = {
-                    north: (start.row-1) < 0 ? {row:null,col:null} : grid[start.row-1][start.col],
-                    south: (start.row+1) >= grid.length ? {row:null,col:null}  : grid[start.row+1][start.col],
-                    east:  (start.col+1) >= grid[0].length ? {row:null,col:null}  : grid[start.row][start.col+1],
-                    west:  (start.col-1) < 0 ? {row:null,col:null}  : grid[start.row][start.col-1],
-                };
+                        north: (start.row-1) < 0 ? false : grid[start.row-1][start.col],
+                        south: (start.row+1) >= grid.length ? false  : grid[start.row+1][start.col],
+                        east:  (start.col+1) >= grid[0].length ? false  : grid[start.row][start.col+1],
+                        west:  (start.col-1) < 0 ? false  : grid[start.row][start.col-1],
+                    };
+
+                console.log(generallyTo);
+                
+                for(var direction in generallyTo){
+                    if(generallyTo[direction] && compass[direction]){
+                        console.log(compass[direction]);
+                        console.log("GENERAL BIAS: Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
+                        if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
+                            console.log("Room is open. Going " + direction + ".");
+                            grid[start.row][start.col].visited = true;
+                            if( solveGridHelper(compass[direction], end, grid, path ) != null ){
+                                var pathNode =  grid[start.row][start.col];
+                                pathNode.directionTaken = direction;
+                                path.push(pathNode);
+                                return path;
+                            }
+                        }
+                        console.log("Closed.");
+                    }
+                }
 
                 console.log(compass);
 
                 for (var direction in compass) {
-                    if (compass.hasOwnProperty(direction)) {
+                    if (compass.hasOwnProperty(direction) && compass[direction]) {
                         console.log(compass[direction]);
                         console.log("Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
                         if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
