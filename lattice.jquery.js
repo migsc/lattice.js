@@ -19,19 +19,14 @@
             thumbnailWidth : 15,
             thumbnailHeight: 15,
             thumbnailSpacing: 3,
-            defaultThumbnail : '<div class="lattice-thumbnail"></div>',
-            defaultThumbnailEmpty: '<div class"lattice-thumbnail empty"></div>'
+            defaultThumbnail :      '<div class="lattice-thumbnail"></div>',
+            defaultThumbnailEmpty:  '<div class"lattice-thumbnail empty"></div>',
+            northArrowHtml:         '<div style="left:50%;top:15px;position:absolute;opacity:0.4;width: 0;height:0;border-left:20px solid transparent;border-right: 20px solid transparent;border-bottom: 20px solid rgb(167, 161, 161);"></div>',
+            eastArrowHtml:          '<div style="top:50%;right:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent;border-left: 20px solid rgb(167, 161, 161);"></div>',
+            southArrowHtml:         '<div style="left:50%;bottom:15px;position:absolute;opacity:0.4;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:20px solid rgb(167, 161, 161);"></div>',
+            westArrowHtml:          '<div style="top:50%;left:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent; border-right:20px solid rgb(167, 161, 161); "></div>',
         }, config);
 
-        //Define the directions that can be taken
-        var directions = {
-            north: false,
-            south: false,
-            east: false,
-            west: false
-        };
-
-        
         // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
         // This will check for that, and if it is smaller, it increases it to just about the options.speed.
         if(options.pause <= options.speed) options.pause = options.speed + 100;
@@ -74,9 +69,7 @@
 
             //Add the thumbnail map
             $(theGrid.thumbnailMap).appendTo('.lattice-wrap').css({
-                'border': 'solid 4px #A7A1A1',
-                'background': 'whitesmoke',
-                'opacity': '0.7',
+                'opacity': '0.4',
                 'position': 'absolute',
                 'bottom': '15px',
                 'right': '15px',
@@ -85,14 +78,6 @@
             }).height(function(){
                 return ( options.thumbnailHeight + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridRows + 1);
             });
-
-
-            //Set the active slide
-            var $active = $this.find(options.startSelector);
-            $active.toggleClass("active");
-            theGrid.active.row = parseInt($active.data("row"));
-            theGrid.active.col = parseInt($active.data("col"));
-            updateActiveThumbnail(theGrid.active.row, theGrid.active.col);
 
             //Build the grid
             for(var rows = 0; rows <= theGrid.gridRows; rows++){
@@ -134,7 +119,7 @@
                             'height': options.thumbnailHeight + 'px',
                             'margin': options.thumbnailSpacing + 'px'
                         }).wrap(function(){
-                            return '<a class="lattice-link" href="#' 
+                            return '<a class="lattice-grid-link" href="#' 
                                 + theGrid.grid[rows][cols].row
                                 + '-' 
                                 + theGrid.grid[rows][cols].col
@@ -143,8 +128,6 @@
                     }
                 }    
             }
-
-            console.log(theGrid.grid);
 
             //Define available paths for each grid
             for(var rows = 0; rows <= theGrid.gridRows; rows++){
@@ -159,25 +142,38 @@
                         if (travelParams){
                             $.each(travelParams.split(","), function(index, value){
                                 theGrid.grid[rows][cols][value] = true;
+                                $reference.append('<a class="lattice-adjacent-link" href="' + value + '">' + options[ value + 'ArrowHtml' ] + '</a>');
                             });
                         } else {
                             if( (cols+1) <= theGrid.gridCols && theGrid.grid[rows][cols+1] !== false){
                                 theGrid.grid[rows][cols].east = true;
+                                $reference.append('<a class="lattice-adjacent-link" href="#east">' + options.eastArrowHtml + '</a>');
                             }
                             if( (rows+1) <= theGrid.gridRows && theGrid.grid[rows+1][cols] !== false) {
                                 theGrid.grid[rows][cols].south = true;
+                                $reference.append('<a class="lattice-adjacent-link" href="#south">' + options.southArrowHtml + '</a>');
                             }
                             if( (cols-1) >= 0 && theGrid.grid[rows][cols-1] !== false) {
                                 theGrid.grid[rows][cols].west = true;
+                                $reference.append('<a class="lattice-adjacent-link" href="#west">' + options.westArrowHtml + '</a>');
                             }
                             if( (rows-1) >= 0 && theGrid.grid[rows-1][cols] !== false) {
                                 theGrid.grid[rows][cols].north = true;
+                                $reference.append('<a class="lattice-adjacent-link" href="#north">' + options.northArrowHtml + '</a>');
                             }
                         }
                     }
                 }
             }
 
+
+            //Set the active slide
+            var $active = $this.find(options.startSelector);
+            $active.toggleClass("active");
+            theGrid.active.row = parseInt($active.data("row"));
+            theGrid.active.col = parseInt($active.data("col"));
+            updateActiveThumbnail(theGrid.active.row, theGrid.active.col);
+            console.log(theGrid.grid);
             
 
             // If the user chose the "slide" transition...
@@ -201,31 +197,70 @@
             console.log(theGrid);
             
             // If the user instead chose the "slide" transition, call the slide function.
-            if(options.transition === 'slide') slide(); 
+            //if(options.transition === 'slide') slide(); 
 
-            console.log(solveGrid(theGrid.grid[0][2], theGrid.grid[0][2], theGrid.grid));
-
-            $(".lattice-link").click(function(e){
+            $(".lattice-adjacent-link").click(function(e){
                 e.preventDefault();
-                var coords = function(){ 
-                        var hrefValue = $(this).attr('href');
-                        hrefValue = hrefValue.replace("#", "");
-                        return hrefValue.split("-");
-                    };
+                var hrefValue = $(this).attr('href'),
+                    path = [theGrid.grid[theGrid.active.row][theGrid.active.col]];
+                
+                var direction = hrefValue.replace("#", "");
+                path[0].directionTaken = direction;
+                    
+                switch(direction)
+                {
+                    case "north":
+                        theGrid.grid[theGrid.active.row-1][theGrid.active.col].directionTaken = direction;
+                        path.push(theGrid.grid[theGrid.active.row-1][theGrid.active.col]);
+                        break;
+
+                    case "east":
+                        theGrid.grid[theGrid.active.row][theGrid.active.col+1].directionTaken = direction;
+                        path.push(theGrid.grid[theGrid.active.row][theGrid.active.col+1]);
+                        break;
+
+                    case "south":
+                        theGrid.grid[theGrid.active.row+1][theGrid.active.col].directionTaken = direction;
+                        path.push(theGrid.grid[theGrid.active.row+1][theGrid.active.col]);
+                        break;
+
+                    case "west":
+                        theGrid.grid[theGrid.active.row][theGrid.active.col-1].directionTaken = direction;
+                        path.push(theGrid.grid[theGrid.active.row][theGrid.active.col-1])
+                        break;
+
+                    default:
+                        return;
+                        break;
+                }
+
+                console.log(path);
+
+                slideOn(path, false);
+                
+                return;
+            });
+
+            $(".lattice-grid-link").click(function(e){
+                e.preventDefault();
+
+                var hrefValue = $(this).attr('href');
+                hrefValue = hrefValue.replace("#", "");
+                var coords = hrefValue.split("-");
+
                 var path =  solveGrid({
                                 row: theGrid.active.row,
                                 col: theGrid.active.col
                             }, theGrid.grid[coords[0]][coords[1]], theGrid.grid);
-                if (path.length == 1 || !path ){
-                    //todo
-                    return;
-                }
+                slideOn(path, true);                
                 return;
             });
 
+
             function updateActiveThumbnail(row, col){
-                var selector = ".lattice-thumbnail[href=#" + row + "-" + col + "]";
-                $(selector).toggleClass(".lattice-thumbnail-active");
+                $(".lattice-thumbnail-map .lattice-thumbnail-active").toggleClass("lattice-thumbnail-active");
+                var selector = ".lattice-thumbnail-map .lattice-grid-link[href=#" + row + "-" + col + "] .lattice-thumbnail";
+                $(selector).toggleClass("lattice-thumbnail-active");
             }
 
             function updateActivePanel(row, col){
@@ -233,16 +268,52 @@
                 theGrid.active.col = col;
             }
 
-            function travelTo(target, direction) {
-                var $target = target,
-                    $current = $('.active'),
-                    animOptions = [{}, {}, {}];
+            function slideOn(path, usePause){
+                if (path.length > 1 || !path ){
+                    var index = 0,
+                        pause = usePause ? options.pause : 0;
+                    window.setInterval(function(){
+                        if( (index+1) == path.length) return;
+
+                        console.log("Taking slide " +  index + " in the " + path[index].directionTaken + " direction.")
+                        updateActiveThumbnail( path[index+1].row, path[index+1].col);
+
+                        if( index > 0 ){
+                            slideTo( path[index], path[index+1], path[index-1]);
+                        } else {
+                            slideTo( path[index], path[index+1], false );
+                        }
+                        
+                        index++;
+
+                    }, pause);
+                }
+            }
+
+            function slideTo(fromNode, toNode, prevNode){
+
+                var $current = $("[data-row=" + fromNode.row + "][data-col=" + fromNode.col + "]"),
+                    $target = $("[data-row=" + toNode.row + "][data-col=" + toNode.col + "]"),
+                    $prev = $("[data-row=" + prevNode.row + "][data-col=" + prevNode.col + "]");
+
+                    $prev.removeAttr("style").css({
+                            'float' : 'left',
+                            'list-style' : 'none',
+                            'position': 'absolute',
+                            'height': '100%',
+                            'width': '100%',
+                            'display': 'none'
+                        });
+
+                    animOptions = [{}, {}, {}],
+                    direction = compassToCss(fromNode.directionTaken);
+                    console.log(direction);
 
                 $.each(animOptions, function(index, value){
                     animOptions[index][direction] = 0;
                 });
 
-                if(direction == 'left' || direction == 'right') {
+                if(fromNode.directionTaken == 'west' || fromNode.directionTaken == 'east') {
                     animOptions[0][direction] = $current.width();
                     animOptions[1][direction] = -($current.width());
                 } else {
@@ -250,59 +321,12 @@
                     animOptions[1][direction] = -($current.height()); 
                 }
 
-                console.log(animOptions);
-
                 $current.removeClass('active').animate(animOptions[0], options.speed);
                 $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], options.speed);
-                
-                theGrid.active.col = $target.data("col");
-                theGrid.active.row = $target.data("row");
+
+                theGrid.active.col = toNode.col;
+                theGrid.active.row = toNode.row;
             }
-
-            function slide() {
-                setInterval(function() {
-                    var activeRow = parseInt($(".active").data("row")),
-                        activeCol = parseInt($(".active").data("row")),
-                        activeOrder = parseInt($(".active").data("order")),
-                        maxOrder = $this.children().length - 1;
-
-                    var $target = $("[data-order=" + ( activeOrder + 1 ) + "]"),
-                        $prev = $("[data-order=" + ( activeOrder - 1 ) + "]");
-
-                    if($target.length == 0) {
-                        $target = $("[data-order=0]");
-                    }
-
-                    if($prev.length == 0) {
-                        $prev = $("[data-order=" + maxOrder + "]");
-                    }
-
-                    $prev.removeAttr("style").css({
-                        'float' : 'left',
-                        'list-style' : 'none',
-                        'position': 'absolute',
-                        'height': '100%',
-                        'width': '100%',
-                        'display': 'none'
-                    });
-
-                    var direction = "left";
-
-                    if(parseInt($target.data("row")) > activeRow) {
-                        direction = "bottom";
-                    } else if(parseInt($target.data("row")) < activeRow) {
-                        direction = "top";
-                    } else if(parseInt($target.data("col")) > activeCol) {
-                        direction = "right";
-                    } else if(parseInt($target.data("col")) < activeCol) {
-                        direction = "left";
-                    }
-
-                    console.log(direction);                    
-                    travelTo($target, direction);
-
-                }, options.pause);
-            } // end slide
 
             function createGrid(length) {
                 var arr = new Array(length || 0),
@@ -329,11 +353,13 @@
                 var path = [];
                 console.log("Path initialized");
                 if ( solveGridHelper( start, end, grid, path) != null ) {
+                    resetGridVisits();
                     console.log("Found a solution. Returning path.")
                     path.reverse();
                     return path;
                 }
 
+                resetGridVisits();
                 console.log("Solution not found! Returning null.")
                 return null;
             }
@@ -346,7 +372,9 @@
                 if(coordsAreEqual(start, end)){
                     console.log("We've reached the end!");
                     grid[start.row][start.col].visited =  true;
-                    path.push(grid[start.row][start.col]);
+                    var pathNode =  grid[start.row][start.col];
+                    pathNode.directionTaken = 'none';
+                    path.push(pathNode);
                     return path;
                 }
 
@@ -361,7 +389,9 @@
                                 col: start.col+1
                             }, end, grid, path ) != null ){
 
-                        path.push(grid[start.row][start.col]);
+                        var pathNode =  grid[start.row][start.col];
+                        pathNode.directionTaken = 'east';
+                        path.push(pathNode);
                         return path;
                     
                     }
@@ -379,7 +409,9 @@
                                 col: start.col
                             }, end, grid, path ) != null ){
 
-                        path.push(grid[start.row][start.col]);
+                        var pathNode =  grid[start.row][start.col];
+                        pathNode.directionTaken = 'south';
+                        path.push(pathNode);
                         return path;
 
                     }                    
@@ -397,7 +429,9 @@
                                 col: start.col-1
                             }, end, grid, path ) != null ){
 
-                        path.push(grid[start.row][start.col]);
+                        var pathNode =  grid[start.row][start.col];
+                        pathNode.directionTaken = 'west';
+                        path.push(pathNode);
                         return path;
                     
                     }
@@ -415,7 +449,9 @@
                                 col: start.col
                             }, end, grid, path ) != null ){
 
-                        path.push(grid[start.row][start.col]);
+                        var pathNode =  grid[start.row][start.col];
+                        pathNode.directionTaken = 'north';
+                        path.push(pathNode);
                         return path;
                     
                     }
@@ -432,6 +468,28 @@
                     return true;
                 }
                 return false;
+            }
+
+            function compassToCss(direction) {
+                var compass = {
+                    north: 'top',
+                    south: 'bottom',
+                    east: 'right',
+                    west: 'left'
+                };
+                return compass[direction];
+            }
+
+            function cloneObject(o) {
+                return $.extend({}, o);
+            }
+
+            function resetGridVisits() {
+                for(var rows = 0; rows <= theGrid.gridRows; rows++){
+                    for(var cols = 0; cols <= theGrid.gridCols; cols++){
+                        theGrid.grid[rows][cols].visited = false;
+                    }
+                }
             }
 
         }); // end each     
