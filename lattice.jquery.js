@@ -30,11 +30,11 @@
         // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
         // This will check for that, and if it is smaller, it increases it to just about the options.speed.
         if(options.pause <= options.speed) options.pause = options.speed + 100;
-    
+        
         // for each item in the wrapped set
         return this.each(function() {
-        
-            // cache "this."
+
+            // cache "this."    
             var $this = $(this);
 
             theGrid = {
@@ -378,86 +378,33 @@
                     return path;
                 }
 
-                console.log("Checking East at " + start.row + ":" + (start.col + 1));
+                var compass = {
+                    north: (start.row-1) < 0 ? {row:null,col:null} : grid[start.row-1][start.col],
+                    south: (start.row+1) >= grid.length ? {row:null,col:null}  : grid[start.row+1][start.col],
+                    east:  (start.col+1) >= grid[0].length ? {row:null,col:null}  : grid[start.row][start.col+1],
+                    west:  (start.col-1) < 0 ? {row:null,col:null}  : grid[start.row][start.col-1],
+                };
 
-                //Check if East is open and not visited
-                if(grid[start.row][start.col].east && !grid[start.row][start.col+1].visited && grid[start.row][start.col+1]) {
-                    console.log("Room is open. Going East.");
-                    grid[start.row][start.col].visited = true;
-                    if( solveGridHelper({
-                                row: start.row, 
-                                col: start.col+1
-                            }, end, grid, path ) != null ){
+                console.log(compass);
 
-                        var pathNode =  grid[start.row][start.col];
-                        pathNode.directionTaken = 'east';
-                        path.push(pathNode);
-                        return path;
-                    
+                for (var direction in compass) {
+                    if (compass.hasOwnProperty(direction)) {
+                        console.log(compass[direction]);
+                        console.log("Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
+                        if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
+                            console.log("Room is open. Going " + direction + ".");
+                            grid[start.row][start.col].visited = true;
+                            if( solveGridHelper(compass[direction], end, grid, path ) != null ){
+                                var pathNode =  grid[start.row][start.col];
+                                pathNode.directionTaken = direction;
+                                path.push(pathNode);
+                                return path;
+                            }
+                        }
+                        console.log("Closed.");
                     }
                 }
 
-                console.log("Closed.");
-                console.log("Checking South at " + (start.row + 1) + ":" + start.col);
-
-                //Check if South is open and not visited
-                if(grid[start.row][start.col].south && !grid[start.row+1][start.col].visited && grid[start.row+1][start.col]) {
-                    console.log("Room is open. Going South.");
-                    grid[start.row][start.col].visited = true;
-                    if( solveGridHelper({
-                                row: start.row+1, 
-                                col: start.col
-                            }, end, grid, path ) != null ){
-
-                        var pathNode =  grid[start.row][start.col];
-                        pathNode.directionTaken = 'south';
-                        path.push(pathNode);
-                        return path;
-
-                    }                    
-                }
-
-                console.log("Closed.");
-                console.log("Checking West at " + start.row + ":" + (start.col - 1));
-
-                //Check if West is open and not visited
-                if(grid[start.row][start.col].west && !grid[start.row][start.col-1].visited && grid[start.row][start.col-1]) {
-                    console.log("Room is open. Going West.");
-                    grid[start.row][start.col].visited = true;
-                    if( solveGridHelper({
-                                row: start.row, 
-                                col: start.col-1
-                            }, end, grid, path ) != null ){
-
-                        var pathNode =  grid[start.row][start.col];
-                        pathNode.directionTaken = 'west';
-                        path.push(pathNode);
-                        return path;
-                    
-                    }
-                }
-
-                console.log("Closed.");
-                console.log("Checking North at " + (start.row - 1) + ":" + start.col);
-
-                //Check if North is open and not visited
-                if(grid[start.row][start.col].north && !grid[start.row-1][start.col].visited && grid[start.row-1][start.col]) {
-                    console.log("Room is open. Going North.");
-                    grid[start.row][start.col].visited = true;
-                    if( solveGridHelper({
-                                row: start.row-1, 
-                                col: start.col
-                            }, end, grid, path ) != null ){
-
-                        var pathNode =  grid[start.row][start.col];
-                        pathNode.directionTaken = 'north';
-                        path.push(pathNode);
-                        return path;
-                    
-                    }
-                }
-
-                console.log("Closed.");
                 console.log("Reached a dead end.");
                 //If we get here, it's a dead end!
                 return null;
@@ -492,10 +439,15 @@
                 }
             }
 
+            
+
         }); // end each     
         
         return this;
 
     } // End plugin. Go eat cake.
-    
+
 })(jQuery);
+
+
+
