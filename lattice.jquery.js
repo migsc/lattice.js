@@ -1,5 +1,5 @@
 /*!
- * Lattice v0.1
+ * Lattice v0.5
  * A jQuery plugin to assemble organize HTML elements in a grid fashion and do other neat things.
  * Original author: @chateloinus
  * Licensed under the MIT license
@@ -10,30 +10,72 @@
     
     $.fn.lattice = function(config) {
 
-        // Take the options that the user selects, and merge them with defaults.
-        var options = $.extend({}, {
+        /******************************
+        * OPTIONS
+        */
+
+        // Take the options that the user selects, and merge them with defaults along with defaults for runtime data.
+        var latt = $.extend({}, {
+            //User selected
             startSelector: ">:first-child",
+            debug: false,
             speed : 1000,
             pause : 3000,
             transition : 'fade',
+            thumnailMapEnabled : true,
             thumbnailWidth : 15,
             thumbnailHeight: 15,
             thumbnailSpacing: 3,
-            defaultThumbnail :      '<div class="lattice-thumbnail"></div>',
-            defaultThumbnailEmpty:  '<div class"lattice-thumbnail empty"></div>',
-            northArrowHtml:         '<div style="left:50%;top:15px;position:absolute;opacity:0.4;width: 0;height:0;border-left:20px solid transparent;border-right: 20px solid transparent;border-bottom: 20px solid rgb(167, 161, 161);"></div>',
-            eastArrowHtml:          '<div style="top:50%;right:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent;border-left: 20px solid rgb(167, 161, 161);"></div>',
-            southArrowHtml:         '<div style="left:50%;bottom:15px;position:absolute;opacity:0.4;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:20px solid rgb(167, 161, 161);"></div>',
-            westArrowHtml:          '<div style="top:50%;left:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent; border-right:20px solid rgb(167, 161, 161); "></div>',
+            thumbnailActiveClass: 'lattice-thumbnail-active',
+            html : {
+                wrapper:            '<div class="lattice-wrap" style="position:relative;"></div>',
+                thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
+                thumbnailEmpty:     '<div class"lattice-thumbnail empty"></div>',
+                thumbnailMap:       '<div class="lattice-thumbnail-map" style="opacity:0.4;position:absolute;bottom:15px;right:15px"></div>',
+                northArrow:         '<div style="left:50%;top:15px;position:absolute;opacity:0.4;width: 0;height:0;border-left:20px solid transparent;border-right: 20px solid transparent;border-bottom: 20px solid rgb(167, 161, 161);"></div>',
+                eastArrow:          '<div style="top:50%;right:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent;border-left: 20px solid rgb(167, 161, 161);"></div>',
+                southArrow:         '<div style="left:50%;bottom:15px;position:absolute;opacity:0.4;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:20px solid rgb(167, 161, 161);"></div>',
+                westArrow:          '<div style="top:50%;left:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent; border-right:20px solid rgb(167, 161, 161); "></div>',
+            },
             sliderWidth: '500px',
             sliderHeight: '400px',
             fullScreen: false,
-            dynamicThumbnails: true
+            dynamicThumbnails: true,
+            //Runtime data
+            grid: [],
+            currentPath: [],
+            active:{
+                row: null,
+                col: null
+            },
+            inMotion: false,
+            dict: {
+                north : {
+                    offsetR: -1,
+                    offsetC: 0
+                },
+                south : {
+                    offsetR: 1,
+                    offsetC: 0
+                },
+                east : {
+                    offsetR: 0,
+                    offsetC: 1
+                },
+                west : {
+                    offsetR: 0,
+                    offsetC: -1
+                }
+            }
         }, config);
 
-        // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
-        // This will check for that, and if it is smaller, it increases it to just about the options.speed.
-        if(options.pause <= options.speed) options.pause = options.speed + 100;
+        /******************************
+        * SETUP
+        */
+
+        // If the pause is less than speed, it'll cause a flicker.
+        // This will check for that, and if it is smaller, it increases it to just about the speed.
+        if(latt.pause <= latt.speed) latt.pause = latt.speed + 100;
         
         // for each item in the wrapped set
         return this.each(function() {
@@ -41,173 +83,118 @@
             // cache "this."    
             var $this = $(this);
 
-            theGrid = {
-                list: [],
-                grid: [],
-                currentPath: [],
-                gridRows: getMaxData($this, "row"),
-                gridCols: getMaxData($this, "col"),
-                gridOrder: getMaxData($this, "order"),
-                thumbnailMap: '<div class="lattice-thumbnail-map"></div>',
-                active:{
-                    row: null,
-                    col: null
-                },
-                inMotion: false,
-                containerContext: $this.context              
-            };
+            latt.gridRows = getMaxData($this, "row");
+            latt.gridCols = getMaxData($this, "col");
+            latt.containerContext = $this.context;
 
             // Wrap "this" in a div with a class and set some styles
-            // Set the width to a really high number. Adjusting the "left" css values, so need to set positioning.
-            $this.wrap('<div class="lattice-wrap" />').css({
+            // Adjusting the "left" css values, so need to set positioning.
+            $this.wrap(latt.html.wrapper).css({
                 'position' : 'relative',
-                'width': options.sliderWidth,
-                'height': options.sliderHeight,
+                'width': latt.sliderWidth,
+                'height': latt.sliderHeight,
                 'overflow': 'hidden',
             });
 
-            if(options.fullScreen) {
+            if(latt.fullScreen) {
                 activateFullScreen(this);
             }
 
-            $(window).resize(function(){
-                if(options.fullScreen){
-                    activateFullScreen(theGrid.containerContext);
-                }
-            });
-
-            $('.lattice-wrap').css({
-                'position' : 'relative',
-            });
-
             //Add the thumbnail map
-            $(theGrid.thumbnailMap).appendTo('.lattice-wrap').css({
-                'opacity': '0.4',
-                'position': 'absolute',
-                'bottom': '15px',
-                'right': '15px',
-            }).width(function(){
-                return ( options.thumbnailWidth + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridCols + 1);
-            }).height(function(){
-                return ( options.thumbnailHeight + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridRows + 1);
-            });
+            if(latt.thumnailMapEnabled){
+                $(latt.html.thumbnailMap).appendTo('.lattice-wrap')
+                    .width(function(){
+                        return ( latt.thumbnailWidth + ( 2 * latt.thumbnailSpacing ) ) * (latt.gridCols + 1);
+                    }).height(function(){
+                        return ( latt.thumbnailHeight + ( 2 * latt.thumbnailSpacing ) ) * (latt.gridRows + 1);
+                    });
+            }
 
-            //Build the grid array and make some thumbnails for each cell
-            for(var rows = 0; rows <= theGrid.gridRows; rows++){
-                theGrid.grid[rows] = [];
-                for(var cols = 0; cols <= theGrid.gridCols; cols++){
+            //Build the grid array while creating thumbnails and setting available paths along the way
+            for(var rows = 0; rows <= latt.gridRows; rows++){
+                latt.grid[rows] = [];
+                for(var cols = 0; cols <= latt.gridCols; cols++){
                     
                     //Cache the reference to the cell's element
                     var $reference = $("[data-row=" + rows + "][data-col=" + cols + "]"),
-                        clearValue = ( cols == theGrid.gridCols ) ? "right" : "none";
+                        clearValue = ( cols == latt.gridCols ) ? "right" : "none";
 
-                    //If an element doesn't exist for this cell, we'll use the default empty thumbnail
-                    if($reference.length == 0){
+                    //If an element doesn't exist for this cell, we'll use the default empty placeholder
+                   if($reference.length == 0){
 
-                        theGrid.grid[rows][cols] = false;
+                        setCellProperties(rows, cols, false);
+                        addThumbnailToMap({
+                                'background':'none'
+                            }, latt.html.thumbnailEmpty, clearValue, $reference);
+                        
+                        continue;
+                    }
 
-                        $(options.defaultThumbnailEmpty).appendTo(".lattice-thumbnail-map").css({
-                            'clear': clearValue,
-                            'display':'block',
-                            'float': 'left',
-                            'width': options.thumbnailWidth + 'px',
-                            'height': options.thumbnailHeight + 'px',
-                            'margin': options.thumbnailSpacing + 'px'
+                    //This element does exist. We'll create the thumbnail.
+                    addThumbnailToMap({
+                            'background-color': '#A7A1A1'
+                        }, latt.html.thumbnailDefault, clearValue, $reference);
+
+                    setCellProperties(rows, cols, {
+                        element: $reference,
+                        order: $reference.data("order"),
+                        html: $('<div>').append($reference.clone()).html(),
+                        row: parseInt($reference.data("row")),
+                        col: parseInt($reference.data("col")),
+                        visited: false,
+                        north: false,
+                        south: false,
+                        east: false,
+                        west: false
+                    });
+
+                    //Define available paths for that cell based on the travel data attribute
+                    if ($reference.data("travel")){
+                        
+                        var travelParams = $reference.data("travel");
+                        $.each(travelParams.split(","), function(index, value){
+                            latt.grid[rows][cols][value] = true;
+                            addAdjacentLink($reference, value);
                         });
 
-                        addThumbnailToMap();
+                        continue;
+                    }
 
-                        'background':'none',
+                    //No path data attribute? Go by adjacency
+                    for( direction in latt.dict ){
+                        if (latt.dict.hasOwnProperty(direction)){
+                            var adjacentCellSelector = 
+                                "[data-row=" + ( rows + latt.dict[direction].offsetR ) 
+                                + "][data-col=" + (cols + latt.dict[direction].offsetC) + "]";
+                                travelProp = {};
 
-                    } else {
-                        theGrid.grid[rows][cols] = {
-                            element: $reference,
-                            order: $reference.data("order"),
-                            html: $('<div>').append($reference.clone()).html(),
-                            row: parseInt($reference.data("row")),
-                            col: parseInt($reference.data("col")),
-                            visited: false,
-                            north: null,
-                            south: null,
-                            east: null,
-                            west: null
-                        }
-
-                        var thumbnail = options.defaultThumbnail;
-
-                        if(options.dynamicThumbnails ){
-
+                            if( $(adjacentCellSelector).length != 0  ) {
+                                travelProp[direction] = true;
+                                setCellProperties(rows, cols, travelProp );
+                                addAdjacentLink($reference, direction);
+                            } else {
+                                travelProp[direction] = false;
+                                setCellProperties(rows, cols, travelProp );
+                            }
                             
-                        } else {
-                            $(thumbnail).appendTo(".lattice-thumbnail-map").css({
-                                'clear': clearValue,
-                                'display': 'block',
-                                'float': 'left',
-                                'background-color': '#A7A1A1',
-                                'width': options.thumbnailWidth + 'px',
-                                'height': options.thumbnailHeight + 'px',
-                                'margin': options.thumbnailSpacing + 'px'
-                            }).wrap(function(){
-                                return '<a class="lattice-grid-link" href="#' 
-                                    + theGrid.grid[rows][cols].row
-                                    + '-' 
-                                    + theGrid.grid[rows][cols].col
-                                    + '"" ></a>';
-                            });
                         }
                     }
-                }    
-            }
 
-            //Define available paths for each grid
-            for(var rows = 0; rows <= theGrid.gridRows; rows++){
-                for(var cols = 0; cols <= theGrid.gridCols; cols++){
-                    if(theGrid.grid[rows][cols]){
-                        var $reference = $("[data-row=" + rows + "][data-col=" + cols + "]");
-                        var travelParams = $reference.data("travel");
-                        theGrid.grid[rows][cols].north = false;
-                        theGrid.grid[rows][cols].south = false;
-                        theGrid.grid[rows][cols].east = false;
-                        theGrid.grid[rows][cols].west = false;
-                        if (travelParams){
-                            $.each(travelParams.split(","), function(index, value){
-                                theGrid.grid[rows][cols][value] = true;
-                                $reference.append('<a class="lattice-adjacent-link" href="' + value + '">' + options[ value + 'ArrowHtml' ] + '</a>');
-                            });
-                        } else {
-                            if( (cols+1) <= theGrid.gridCols && theGrid.grid[rows][cols+1] !== false){
-                                theGrid.grid[rows][cols].east = true;
-                                $reference.append('<a class="lattice-adjacent-link" href="#east">' + options.eastArrowHtml + '</a>');
-                            }
-                            if( (rows+1) <= theGrid.gridRows && theGrid.grid[rows+1][cols] !== false) {
-                                theGrid.grid[rows][cols].south = true;
-                                $reference.append('<a class="lattice-adjacent-link" href="#south">' + options.southArrowHtml + '</a>');
-                            }
-                            if( (cols-1) >= 0 && theGrid.grid[rows][cols-1] !== false) {
-                                theGrid.grid[rows][cols].west = true;
-                                $reference.append('<a class="lattice-adjacent-link" href="#west">' + options.westArrowHtml + '</a>');
-                            }
-                            if( (rows-1) >= 0 && theGrid.grid[rows-1][cols] !== false) {
-                                theGrid.grid[rows][cols].north = true;
-                                $reference.append('<a class="lattice-adjacent-link" href="#north">' + options.northArrowHtml + '</a>');
-                            }
-                        }
-                    }
-                }
-            }
+                } //end col loop
+            }//end row loop
 
+            lattlog(latt);
 
             //Set the active slide
-            var $active = $this.find(options.startSelector);
+            var $active = $this.find(latt.startSelector);
             $active.toggleClass("active");
-            theGrid.active.row = parseInt($active.data("row"));
-            theGrid.active.col = parseInt($active.data("col"));
-            updateActiveThumbnail(theGrid.active.row, theGrid.active.col);
-            console.log(theGrid.grid);
+            latt.active.row = parseInt($active.data("row"));
+            latt.active.col = parseInt($active.data("col"));
+            updateActiveThumbnail(latt.active.row, latt.active.col);
             
 
             // If the user chose the "slide" transition...
-            if(options.transition === 'slide') {
+            if(latt.transition === 'slide') {
                 $this.children().css({
                     'float' : 'left',
                     'list-style' : 'none',
@@ -223,19 +210,24 @@
                 });
                 $('.lattice-wrap .active').show();
             }
-
-            console.log(theGrid);
             
-            // If the user instead chose the "slide" transition, call the slide function.
-            //if(options.transition === 'slide') slide(); 
+            /******************************
+            * EVENTS
+            */
+
+            $(window).resize(function(){
+                if(latt.fullScreen){
+                    activateFullScreen(latt.containerContext);
+                }
+            });
 
             $(".lattice-adjacent-link").click(function(e){
                 e.preventDefault();
-                if(theGrid.inMotion) return;
-                else theGrid.inMotion = true;
+                if(latt.inMotion) return;
+                else latt.inMotion = true;
 
                 var hrefValue = $(this).attr('href'),
-                    path = [theGrid.grid[theGrid.active.row][theGrid.active.col]];
+                    path = [latt.grid[latt.active.row][latt.active.col]];
                 
                 var direction = hrefValue.replace("#", "");
                 path[0].directionTaken = direction;
@@ -243,23 +235,23 @@
                 switch(direction)
                 {
                     case "north":
-                        theGrid.grid[theGrid.active.row-1][theGrid.active.col].directionTaken = direction;
-                        path.push(theGrid.grid[theGrid.active.row-1][theGrid.active.col]);
+                        latt.grid[latt.active.row-1][latt.active.col].directionTaken = direction;
+                        path.push(latt.grid[latt.active.row-1][latt.active.col]);
                         break;
 
                     case "east":
-                        theGrid.grid[theGrid.active.row][theGrid.active.col+1].directionTaken = direction;
-                        path.push(theGrid.grid[theGrid.active.row][theGrid.active.col+1]);
+                        latt.grid[latt.active.row][latt.active.col+1].directionTaken = direction;
+                        path.push(latt.grid[latt.active.row][latt.active.col+1]);
                         break;
 
                     case "south":
-                        theGrid.grid[theGrid.active.row+1][theGrid.active.col].directionTaken = direction;
-                        path.push(theGrid.grid[theGrid.active.row+1][theGrid.active.col]);
+                        latt.grid[latt.active.row+1][latt.active.col].directionTaken = direction;
+                        path.push(latt.grid[latt.active.row+1][latt.active.col]);
                         break;
 
                     case "west":
-                        theGrid.grid[theGrid.active.row][theGrid.active.col-1].directionTaken = direction;
-                        path.push(theGrid.grid[theGrid.active.row][theGrid.active.col-1])
+                        latt.grid[latt.active.row][latt.active.col-1].directionTaken = direction;
+                        path.push(latt.grid[latt.active.row][latt.active.col-1])
                         break;
 
                     default:
@@ -267,7 +259,7 @@
                         break;
                 }
 
-                console.log(path);
+                lattlog(path);
 
                 slideOn(path, false);
 
@@ -276,41 +268,44 @@
 
             $(".lattice-grid-link").click(function(e){
                 e.preventDefault();
-                if(theGrid.inMotion) return;
-                else theGrid.inMotion = true;
+                if(latt.inMotion) return;
+                else latt.inMotion = true;
 
                 var hrefValue = $(this).attr('href');
                 hrefValue = hrefValue.replace("#", "");
                 var coords = hrefValue.split("-");
 
                 var path =  solveGrid({
-                                row: theGrid.active.row,
-                                col: theGrid.active.col
-                            }, theGrid.grid[coords[0]][coords[1]], theGrid.grid);
+                                row: latt.active.row,
+                                col: latt.active.col
+                            }, latt.grid[coords[0]][coords[1]], latt.grid);
                 slideOn(path, true);                
                 return;
             });
 
+            /******************************
+            * FUNCTIONS
+            */
 
             function updateActiveThumbnail(row, col){
-                $(".lattice-thumbnail-map .lattice-thumbnail-active").toggleClass("lattice-thumbnail-active");
+                $(".lattice-thumbnail-map ." + latt.thumbnailActiveClass).toggleClass( latt.thumbnailActiveClass );
                 var selector = ".lattice-thumbnail-map .lattice-grid-link[href=#" + row + "-" + col + "] .lattice-thumbnail";
-                $(selector).toggleClass("lattice-thumbnail-active");
+                $(selector).toggleClass(latt.thumbnailActiveClass);
             }
 
             function updateActivePanel(row, col){
-                theGrid.active.row =  row;
-                theGrid.active.col = col;
+                latt.active.row =  row;
+                latt.active.col = col;
             }
 
             function slideOn(path, usePause){
                 if (path.length > 1 || !path ){
                     var index = 0,
-                        pause = usePause ? options.pause : 0;
+                        pause = usePause ? latt.pause : 0;
                     window.setInterval(function(){
                         if( (index+1) == path.length) return;
 
-                        console.log("Taking slide " +  index + " in the " + path[index].directionTaken + " direction.")
+                        lattlog("Taking slide " +  index + " in the " + path[index].directionTaken + " direction.")
                         updateActiveThumbnail( path[index+1].row, path[index+1].col);
 
                         if( index > 0 ){
@@ -324,7 +319,7 @@
                     }, pause);
                 }
 
-                theGrid.inMotion = false;
+                latt.inMotion = false;
             }
 
             function slideTo(fromNode, toNode, prevNode){
@@ -344,7 +339,7 @@
 
                     animOptions = [{}, {}, {}],
                     direction = compassToCss(fromNode.directionTaken);
-                    console.log(direction);
+                    lattlog(direction);
 
                 $.each(animOptions, function(index, value){
                     animOptions[index][direction] = 0;
@@ -358,11 +353,11 @@
                     animOptions[1][direction] = -($current.height()); 
                 }
 
-                $current.removeClass('active').animate(animOptions[0], options.speed);
-                $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], options.speed);
+                $current.removeClass('active').animate(animOptions[0], latt.speed);
+                $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], latt.speed);
 
-                theGrid.active.col = toNode.col;
-                theGrid.active.row = toNode.row;
+                latt.active.col = toNode.col;
+                latt.active.row = toNode.row;
             }
 
             function createGrid(length) {
@@ -386,28 +381,28 @@
             }
 
             function solveGrid(start, end, grid){
-                console.log("Starting solver.");
+                lattlog("Starting solver.");
                 var path = [];
-                console.log("Path initialized");
+                lattlog("Path initialized");
                 if ( solveGridHelper( start, end, grid, path) != null ) {
                     resetGridVisits();
-                    console.log("Found a solution. Returning path.")
+                    lattlog("Found a solution. Returning path.")
                     path.reverse();
                     return path;
                 }
 
                 resetGridVisits();
-                console.log("Solution not found! Returning null.")
+                lattlog("Solution not found! Returning null.")
                 return null;
             }
 
             function solveGridHelper(start, end, grid,  path){
 
-                console.log("Currently at " + start.row + ":" + start.col);
+                lattlog("Currently at " + start.row + ":" + start.col);
 
                 //Check if we're already at the goal
                 if(coordsAreEqual(start, end)){
-                    console.log("We've reached the end!");
+                    lattlog("We've reached the end!");
                     grid[start.row][start.col].visited =  true;
                     var pathNode =  grid[start.row][start.col];
                     pathNode.directionTaken = 'none';
@@ -430,14 +425,14 @@
                         west:  (start.col-1) < 0 ? false  : grid[start.row][start.col-1],
                     };
 
-                console.log(generallyTo);
+                lattlog(generallyTo);
                 
                 for(var direction in generallyTo){
                     if(generallyTo[direction] && compass[direction]){
-                        console.log(compass[direction]);
-                        console.log("GENERAL BIAS: Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
+                        lattlog(compass[direction]);
+                        lattlog("GENERAL BIAS: Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
                         if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
-                            console.log("Room is open. Going " + direction + ".");
+                            lattlog("Room is open. Going " + direction + ".");
                             grid[start.row][start.col].visited = true;
                             if( solveGridHelper(compass[direction], end, grid, path ) != null ){
                                 var pathNode =  grid[start.row][start.col];
@@ -446,18 +441,18 @@
                                 return path;
                             }
                         }
-                        console.log("Closed.");
+                        lattlog("Closed.");
                     }
                 }
 
-                console.log(compass);
+                lattlog(compass);
 
                 for (var direction in compass) {
                     if (compass.hasOwnProperty(direction) && compass[direction]) {
-                        console.log(compass[direction]);
-                        console.log("Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
+                        lattlog(compass[direction]);
+                        lattlog("Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
                         if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
-                            console.log("Room is open. Going " + direction + ".");
+                            lattlog("Room is open. Going " + direction + ".");
                             grid[start.row][start.col].visited = true;
                             if( solveGridHelper(compass[direction], end, grid, path ) != null ){
                                 var pathNode =  grid[start.row][start.col];
@@ -466,11 +461,11 @@
                                 return path;
                             }
                         }
-                        console.log("Closed.");
+                        lattlog("Closed.");
                     }
                 }
 
-                console.log("Reached a dead end.");
+                lattlog("Reached a dead end.");
                 //If we get here, it's a dead end!
                 return null;
             }
@@ -497,9 +492,9 @@
             }
 
             function resetGridVisits() {
-                for(var rows = 0; rows <= theGrid.gridRows; rows++){
-                    for(var cols = 0; cols <= theGrid.gridCols; cols++){
-                        theGrid.grid[rows][cols].visited = false;
+                for(var rows = 0; rows <= latt.gridRows; rows++){
+                    for(var cols = 0; cols <= latt.gridCols; cols++){
+                        latt.grid[rows][cols].visited = false;
                     }
                 }
             }
@@ -527,17 +522,24 @@
                                 'clear': clearValue,
                                 'display': 'block',
                                 'float': 'left',
-                                'width': options.thumbnailWidth + 'px',
-                                'height': options.thumbnailHeight + 'px',
-                                'margin': options.thumbnailSpacing + 'px'
+                                'width': latt.thumbnailWidth + 'px',
+                                'height': latt.thumbnailHeight + 'px',
+                                'margin': latt.thumbnailSpacing + 'px'
                             })
                             wrapThumbnailInAnchor(thumbnail ,$reference);
                         }
                     });
             }
 
-            function wrapThumbnailInAnchor(thumbnail, $reference){
-                $(thumbnail).wrap(function(){
+            function addThumbnailToMap(customCss, thumbnail, clearValue, $reference){
+                $(thumbnail).appendTo(".lattice-thumbnail-map").css({
+                    'clear': clearValue,
+                    'display':'block',
+                    'float': 'left',
+                    'width': latt.thumbnailWidth + 'px',
+                    'height': latt.thumbnailHeight + 'px',
+                    'margin': latt.thumbnailSpacing + 'px'
+                }).css(customCss).wrap(function(){
                     return '<a class="lattice-grid-link" href="#' 
                         + $reference.data('row')
                         + '-' 
@@ -546,16 +548,34 @@
                 });
             }
 
-            function addThumbnailToMap(thumbnail, clearValue){
-                $(thumbnail).appendTo(".lattice-thumbnail-map").css({
-                    'clear': clearValue,
-                    'display':'block',
-                    'float': 'left',
-                    'width': options.thumbnailWidth + 'px',
-                    'height': options.thumbnailHeight + 'px',
-                    'margin': options.thumbnailSpacing + 'px'
-                });
-                return $(thumbnail);
+            function setCellProperties(row, col, props){
+                
+                if(!props){
+                    latt.grid[row][col] = false;
+                    return;
+                }
+
+                if( latt.grid[row][col] === undefined ){
+                    latt.grid[row][col] = {};
+                }
+
+                for (var propName in props) {
+                    if (props.hasOwnProperty(propName)) {
+                        latt.grid[row][col][propName] = props[propName];
+                    }
+                }
+            }
+
+            function addAdjacentLink($reference, direction) {
+                $reference.append(
+                    '<a class="lattice-adjacent-link" href="#' + direction + '">' + latt.html[direction + 'Arrow'] + '</a>'
+                );
+            }
+
+            function lattlog(mixed){
+                if( latt.debug && window.console && window.console.log) {
+                    console.log(mixed);
+                }
             }
 
 
@@ -563,9 +583,6 @@
         
         return this;
 
-    } // End plugin. Go eat cake.
+    } // End plugin.
 
 })(jQuery);
-
-
-
