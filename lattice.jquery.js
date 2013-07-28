@@ -21,14 +21,18 @@
             debug: false,
             speed : 1000,
             pause : 3000,
-            transition : 'fade',
+            adjacentEasing: 'swing',
+            nonAdjacentEasing: 'linear',
             thumnailMapEnabled : true,
             thumbnailWidth : 15,
             thumbnailHeight: 15,
             thumbnailSpacing: 3,
+            AdjacentLinkHideDuration: 200, 
+            AdjacentLinkShowDuration: 700,
             thumbnailActiveClass: 'lattice-thumbnail-active',
+            containerClass: 'lattice-container',
             html : {
-                wrapper:            '<div class="lattice-wrap" style="position:relative;"></div>',
+                wrapper:            '<div class="" style="position:relative;"></div>',
                 thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
                 thumbnailEmpty:     '<div class"lattice-thumbnail empty"></div>',
                 thumbnailMap:       '<div class="lattice-thumbnail-map" style="opacity:0.4;position:absolute;bottom:15px;right:15px"></div>',
@@ -86,14 +90,24 @@
             latt.gridRows = getMaxData($this, "row");
             latt.gridCols = getMaxData($this, "col");
             latt.containerContext = $this.context;
+            
 
             // Wrap "this" in a div with a class and set some styles
             // Adjusting the "left" css values, so need to set positioning.
-            $this.wrap(latt.html.wrapper).css({
+            $this.css({
                 'position' : 'relative',
                 'width': latt.sliderWidth,
                 'height': latt.sliderHeight,
                 'overflow': 'hidden',
+            }).addClass(latt.containerClass);
+
+            $this.children().css({
+                'float' : 'left',
+                'list-style' : 'none',
+                'position': 'absolute',
+                'height': '100%',
+                'width': '100%',
+                'display': 'none'
             });
 
             if(latt.fullScreen) {
@@ -102,7 +116,7 @@
 
             //Add the thumbnail map
             if(latt.thumnailMapEnabled){
-                $(latt.html.thumbnailMap).appendTo('.lattice-wrap')
+                $(latt.html.thumbnailMap).appendTo('.' + latt.containerClass)
                     .width(function(){
                         return ( latt.thumbnailWidth + ( 2 * latt.thumbnailSpacing ) ) * (latt.gridCols + 1);
                     }).height(function(){
@@ -191,26 +205,9 @@
             latt.active.row = parseInt($active.data("row"));
             latt.active.col = parseInt($active.data("col"));
             updateActiveThumbnail(latt.active.row, latt.active.col);
-            
 
-            // If the user chose the "slide" transition...
-            if(latt.transition === 'slide') {
-                $this.children().css({
-                    'float' : 'left',
-                    'list-style' : 'none',
-                    'position': 'absolute',
-                    'height': '100%',
-                    'width': '100%',
-                    'display': 'none'
-                });
-                
-                $('.lattice-wrap').css({
-                    'width' : $this.children().width(),
-                    'overflow' : 'hidden',
-                });
-                $('.lattice-wrap .active').show();
-            }
-            
+            $('.' + latt.containerClass + ' .active').show();
+
             /******************************
             * EVENTS
             */
@@ -298,31 +295,53 @@
                 latt.active.col = col;
             }
 
+            function hideAdjacentLinks(){
+                $('.lattice-adjacent-link').hide(latt.AdjacentLinkHideDuration);
+            }
+
+            function showAdjacentLinks(){
+                $('.lattice-adjacent-link').show(latt.AdjacentLinkShowDuration);
+            }
+
             function slideOn(path, usePause){
-                if (path.length > 1 || !path ){
+
+                if (path.length > 1 || !path ) {
+
                     var index = 0,
-                        pause = usePause ? latt.pause : 0;
+                        pause = latt.speed;
+                    var isAdjacentToDestination = ( index == path.length - 2 );
+
+                    slideTo( path[index], path[index+1], false, isAdjacentToDestination);
+                    index++;
+
                     window.setInterval(function(){
-                        if( (index+1) == path.length) return;
+                        if( (index+1) == path.length){
+                            return;
+                        }
+
+                        if( index == 0) {
+                            pause = 0;
+                        }
 
                         lattlog("Taking slide " +  index + " in the " + path[index].directionTaken + " direction.")
                         updateActiveThumbnail( path[index+1].row, path[index+1].col);
 
-                        if( index > 0 ){
-                            slideTo( path[index], path[index+1], path[index-1]);
-                        } else {
-                            slideTo( path[index], path[index+1], false );
-                        }
-                        
+                        var prevNode = index > 0 ? path[index-1] : false,
+                            isAdjacentToDestination = ( index == path.length - 2 );
+                               
+                        slideTo( path[index], path[index+1], prevNode, isAdjacentToDestination);
+
                         index++;
 
                     }, pause);
+                    
                 }
 
+                
                 latt.inMotion = false;
             }
 
-            function slideTo(fromNode, toNode, prevNode){
+            function slideTo(fromNode, toNode, prevNode, isAdjacentToDestination){
 
                 var $current = $("[data-row=" + fromNode.row + "][data-col=" + fromNode.col + "]"),
                     $target = $("[data-row=" + toNode.row + "][data-col=" + toNode.col + "]"),
@@ -339,11 +358,15 @@
 
                     animOptions = [{}, {}, {}],
                     direction = compassToCss(fromNode.directionTaken);
-                    lattlog(direction);
+
+                hideAdjacentLinks();
 
                 $.each(animOptions, function(index, value){
                     animOptions[index][direction] = 0;
                 });
+
+                lattlog(isAdjacentToDestination);
+                lattlog(direction);
 
                 if(fromNode.directionTaken == 'west' || fromNode.directionTaken == 'east') {
                     animOptions[0][direction] = $current.width();
@@ -353,8 +376,15 @@
                     animOptions[1][direction] = -($current.height()); 
                 }
 
-                $current.removeClass('active').animate(animOptions[0], latt.speed);
-                $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], latt.speed);
+                var easing = isAdjacentToDestination ? latt.adjacentEasing : latt.nonAdjacentEasing;
+                lattlog(easing );
+                
+                $current.removeClass('active').animate(animOptions[0], latt.speed, easing);
+                $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], latt.speed, easing, function(){
+                    if(isAdjacentToDestination){
+                        showAdjacentLinks();
+                    }
+                });
 
                 latt.active.col = toNode.col;
                 latt.active.row = toNode.row;
@@ -504,7 +534,7 @@
                     'width': '100%',
                     'height': '100%'
                 });
-                $(".lattice-wrap").css({
+                $('.' + latt.containerClass).css({
                     'width': window.innerWidth + 'px',
                     'height': $(window).height() + 'px'
                 });
