@@ -27,8 +27,10 @@
             thumbnailWidth : 15,
             thumbnailHeight: 15,
             thumbnailSpacing: 3,
-            AdjacentLinkHideDuration: 200, 
-            AdjacentLinkShowDuration: 700,
+            adjacentLinkHideDuration: 200, 
+            adjacentLinkShowDuration: 700,
+            thumbnailMapHideDuration: 200,
+            thumbnailMapShowDuration: 700,
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
@@ -53,7 +55,7 @@
                 col: null
             },
             inMotion: false,
-            dict: {
+            compassDict: {
                 north : {
                     offsetR: -1,
                     offsetC: 0
@@ -70,6 +72,12 @@
                     offsetR: 0,
                     offsetC: -1
                 }
+            },
+            keyDict: {
+                '37' : 'west',
+                '38' : 'north',
+                '39' : 'east',
+                '40' : 'south'
             }
         }, config);
 
@@ -89,8 +97,7 @@
 
             latt.gridRows = getMaxData($this, "row");
             latt.gridCols = getMaxData($this, "col");
-            latt.containerContext = $this.context;
-            
+            latt.containerContext = $this.context;            
 
             // Wrap "this" in a div with a class and set some styles
             // Adjusting the "left" css values, so need to set positioning.
@@ -175,11 +182,11 @@
                     }
 
                     //No path data attribute? Go by adjacency
-                    for( direction in latt.dict ){
-                        if (latt.dict.hasOwnProperty(direction)){
+                    for( direction in latt.compassDict ){
+                        if (latt.compassDict.hasOwnProperty(direction)){
                             var adjacentCellSelector = 
-                                "[data-row=" + ( rows + latt.dict[direction].offsetR ) 
-                                + "][data-col=" + (cols + latt.dict[direction].offsetC) + "]";
+                                "[data-row=" + ( rows + latt.compassDict[direction].offsetR ) 
+                                + "][data-col=" + (cols + latt.compassDict[direction].offsetC) + "]";
                                 travelProp = {};
 
                             if( $(adjacentCellSelector).length != 0  ) {
@@ -207,6 +214,8 @@
             updateActiveThumbnail(latt.active.row, latt.active.col);
 
             $('.' + latt.containerClass + ' .active').show();
+            hideThumbnailMap();
+            hideAdjacentLinks();
 
             /******************************
             * EVENTS
@@ -215,6 +224,45 @@
             $(window).resize(function(){
                 if(latt.fullScreen){
                     activateFullScreen(latt.containerContext);
+                }
+            });
+
+            $(window).keyup(function(event){
+    
+                if(latt.inMotion || latt.keyDict[event.which] === undefined) {
+                    return;
+                }
+
+                lattlog("KEYPRESS DETECTED: " + latt.keyDict[event.which]);
+
+                latt.inMotion = true;
+                
+                var key = parseInt(event.which),
+                    direction = latt.keyDict[event.which];
+                var path = [latt.grid[latt.active.row][latt.active.col]],
+                    row = latt.active.row + latt.compassDict[direction].offsetR,
+                    col = latt.active.col + latt.compassDict[direction].offsetC;
+
+                path[0].directionTaken = direction;
+                latt.grid[row][col].directionTaken = direction;
+                path.push(latt.grid[row][col]);
+                
+                lattlog(path);
+
+                slideOn(path, false);
+
+                return;
+            })
+
+            $(".active").mouseenter(function(){
+                showAdjacentLinks();
+                showThumbnailMap();
+            });
+
+            $(".active").mouseleave(function(){
+                if( ! $('.lattice-thumbnail-map').is(':hover')){
+                    hideThumbnailMap();
+                    hideAdjacentLinks();
                 }
             });
 
@@ -296,11 +344,20 @@
             }
 
             function hideAdjacentLinks(){
-                $('.lattice-adjacent-link').hide(latt.AdjacentLinkHideDuration);
+                $('.lattice-adjacent-link').hide(latt.adjacentLinkHideDuration);
             }
 
             function showAdjacentLinks(){
-                $('.lattice-adjacent-link').show(latt.AdjacentLinkShowDuration);
+                $('.lattice-adjacent-link').show(latt.adjacentLinkShowDuration);
+            }
+
+            function hideThumbnailMap(){
+                if(latt.fullScreen) return;
+                $('.lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
+            }
+
+            function showThumbnailMap(){
+                $('.lattice-thumbnail-map').show(latt.thumbnailMapShowDuration).css('display','inline');
             }
 
             function slideOn(path, usePause){
