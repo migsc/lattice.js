@@ -28,6 +28,7 @@
             sliderWidth: '500px',
             sliderHeight: '400px',
             fullScreen: false,
+            dynamicThumbnails: true
         }, config);
 
         // Needed to fix a tiny bug. If the pause is less than speed, it'll cause a flickr.
@@ -91,24 +92,33 @@
                 return ( options.thumbnailHeight + ( 2 * options.thumbnailSpacing ) ) * (theGrid.gridRows + 1);
             });
 
-            //Build the grid
+            //Build the grid array and make some thumbnails for each cell
             for(var rows = 0; rows <= theGrid.gridRows; rows++){
                 theGrid.grid[rows] = [];
                 for(var cols = 0; cols <= theGrid.gridCols; cols++){
+                    
+                    //Cache the reference to the cell's element
                     var $reference = $("[data-row=" + rows + "][data-col=" + cols + "]"),
                         clearValue = ( cols == theGrid.gridCols ) ? "right" : "none";
+
+                    //If an element doesn't exist for this cell, we'll use the default empty thumbnail
                     if($reference.length == 0){
+
                         theGrid.grid[rows][cols] = false;
+
                         $(options.defaultThumbnailEmpty).appendTo(".lattice-thumbnail-map").css({
                             'clear': clearValue,
                             'display':'block',
-                            'background':'none',
                             'float': 'left',
                             'width': options.thumbnailWidth + 'px',
                             'height': options.thumbnailHeight + 'px',
                             'margin': options.thumbnailSpacing + 'px'
                         });
-                        console.log(options.defaultThumbnailEmpty);
+
+                        addThumbnailToMap();
+
+                        'background':'none',
+
                     } else {
                         theGrid.grid[rows][cols] = {
                             element: $reference,
@@ -122,21 +132,29 @@
                             east: null,
                             west: null
                         }
-                        $(options.defaultThumbnail).appendTo(".lattice-thumbnail-map").css({
-                            'clear': clearValue,
-                            'display': 'block',
-                            'float': 'left',
-                            'background-color': '#A7A1A1',
-                            'width': options.thumbnailWidth + 'px',
-                            'height': options.thumbnailHeight + 'px',
-                            'margin': options.thumbnailSpacing + 'px'
-                        }).wrap(function(){
-                            return '<a class="lattice-grid-link" href="#' 
-                                + theGrid.grid[rows][cols].row
-                                + '-' 
-                                + theGrid.grid[rows][cols].col
-                                + '"" ></a>';
-                        });
+
+                        var thumbnail = options.defaultThumbnail;
+
+                        if(options.dynamicThumbnails ){
+
+                            
+                        } else {
+                            $(thumbnail).appendTo(".lattice-thumbnail-map").css({
+                                'clear': clearValue,
+                                'display': 'block',
+                                'float': 'left',
+                                'background-color': '#A7A1A1',
+                                'width': options.thumbnailWidth + 'px',
+                                'height': options.thumbnailHeight + 'px',
+                                'margin': options.thumbnailSpacing + 'px'
+                            }).wrap(function(){
+                                return '<a class="lattice-grid-link" href="#' 
+                                    + theGrid.grid[rows][cols].row
+                                    + '-' 
+                                    + theGrid.grid[rows][cols].col
+                                    + '"" ></a>';
+                            });
+                        }
                     }
                 }    
             }
@@ -497,7 +515,49 @@
                 });
             }
 
-            
+            function createDynamicThumbnail($reference, rows, cols, thumbnail){
+                var idSelector = "#" + $reference.attr("id");
+                    html2canvas($(idSelector), {
+                        onrendered: function(canvas, rows, cols) {
+                            var image = new Image();
+                            image.src = canvas.toDataURL("image/png");
+                            image.style = "width:100%;height:100%;";
+
+                            $(thumbnail).append(image).appendTo(".lattice-thumbnail-map").css({
+                                'clear': clearValue,
+                                'display': 'block',
+                                'float': 'left',
+                                'width': options.thumbnailWidth + 'px',
+                                'height': options.thumbnailHeight + 'px',
+                                'margin': options.thumbnailSpacing + 'px'
+                            })
+                            wrapThumbnailInAnchor(thumbnail ,$reference);
+                        }
+                    });
+            }
+
+            function wrapThumbnailInAnchor(thumbnail, $reference){
+                $(thumbnail).wrap(function(){
+                    return '<a class="lattice-grid-link" href="#' 
+                        + $reference.data('row')
+                        + '-' 
+                        + $reference.data('col')
+                        + '" ></a>';
+                });
+            }
+
+            function addThumbnailToMap(thumbnail, clearValue){
+                $(thumbnail).appendTo(".lattice-thumbnail-map").css({
+                    'clear': clearValue,
+                    'display':'block',
+                    'float': 'left',
+                    'width': options.thumbnailWidth + 'px',
+                    'height': options.thumbnailHeight + 'px',
+                    'margin': options.thumbnailSpacing + 'px'
+                });
+                return $(thumbnail);
+            }
+
 
         }); // end each     
         
