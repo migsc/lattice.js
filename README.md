@@ -11,12 +11,12 @@ Want to slide images? Ok whatever, fine, but this baby is built to slide page co
 
 #Issues
 
-Currently, it's a buggy work in progress. Performance is still being worked on. Features are still being implemented.Suggestions are highly welcome: mchateloin@gmail.com
+Currently, it's a buggy work in progress. Performance is still being worked on. Features are still being implemented. Suggestions are highly welcome: mchateloin@gmail.com
 
 #Upcoming Features
 
 This is what I plan to implement before v1.0
-* Better support any width and height for cell elements
+* Better support for any width and height for cell elements. Currently it's assumed that all cells are the same width and height.
 * Callback support on animation and navigation
 * Create an actual full screen mode, not the "full window" functionality that's there currently, that I mistakenly _called_ 'fullscreen' mode, ha.
 * Ability to activate fullscreen at runtime with an awesome transition
