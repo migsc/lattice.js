@@ -97,7 +97,7 @@
 
             latt.gridRows = getMaxData($this, "row");
             latt.gridCols = getMaxData($this, "col");
-            latt.containerContext = $this.context;            
+            latt.containerContext = $this.context;
 
             // Wrap "this" in a div with a class and set some styles
             // Adjusting the "left" css values, so need to set positioning.
@@ -162,18 +162,17 @@
                         html: $('<div>').append($reference.clone()).html(),
                         row: parseInt($reference.data("row")),
                         col: parseInt($reference.data("col")),
+                        travel: $reference.data("travel"),
                         visited: false,
                         north: false,
                         south: false,
                         east: false,
-                        west: false
+                        west: false,
                     });
 
                     //Define available paths for that cell based on the travel data attribute
-                    if ($reference.data("travel")){
-                        
-                        var travelParams = $reference.data("travel");
-                        $.each(travelParams.split(","), function(index, value){
+                    if (latt.grid[rows][cols].travel){
+                        $.each(latt.grid[rows][cols].travel.split(","), function(index, value){
                             latt.grid[rows][cols][value] = true;
                             addAdjacentLink($reference, value);
                         });
@@ -184,6 +183,7 @@
                     //No path data attribute? Go by adjacency
                     for( direction in latt.compassDict ){
                         if (latt.compassDict.hasOwnProperty(direction)){
+                            //TODO: Find a faster way of doing this
                             var adjacentCellSelector = 
                                 "[data-row=" + ( rows + latt.compassDict[direction].offsetR ) 
                                 + "][data-col=" + (cols + latt.compassDict[direction].offsetC) + "]";

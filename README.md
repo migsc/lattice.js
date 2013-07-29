@@ -25,7 +25,7 @@ This is what I plan to implement before v1.0
 * Refactor useful methods into a new pattern to allow invoking after initialization [2]
 * Peformance mode for heavy web apps, where more information is provided about the DOM in intialization options, rather than having to traverse the the DOM for data-attributes.
 * 3-D sliding with 3-D thumbnail map. The additional data-depth attribute needs to be created along with new compass definitions, 'forward' and 'backward' and animation logic for those definitions. [3]
-* Build awesome examples, both 2D and 3D versions, of the following: (1)A collection of cue card like HTML elements, and (2) an image gallery, and a 
+* Build awesome examples, both 2D and 3D versions, of the following: (1)A collection of cue card like HTML elements, and (2) an image gallery, and (3) a simple sample personal website.
 
 _**[1]** Using [html2canvas](https://github.com/niklasvh/html2canvas) is difficult. A canvas can only be created from visible elements (i.e. display not set to 'none' or visibility not set to 'hidden'). My crude attempt to programmatically display each cell element and then capture it with html2canvas failed. Either I'm doing something wrong or there's no way to gaurantee that I can capture a visible element after using $.css(). I choose to believe the former and continue trying at this. Not out of ideas yet!_
 
