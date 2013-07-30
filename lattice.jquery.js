@@ -78,7 +78,8 @@
                 '38' : 'north',
                 '39' : 'east',
                 '40' : 'south'
-            }
+            },
+            pathCache: {}
         }, config);
 
         /******************************
@@ -146,7 +147,7 @@
                         setCellProperties(rows, cols, false);
                         addThumbnailToMap({
                                 'background':'none'
-                            }, latt.html.thumbnailEmpty, clearValue, $reference);
+                            }, latt.html.thumbnailEmpty, clearValue, rows, cols);
                         
                         continue;
                     }
@@ -154,11 +155,10 @@
                     //This element does exist. We'll create the thumbnail.
                     addThumbnailToMap({
                             'background-color': '#A7A1A1'
-                        }, latt.html.thumbnailDefault, clearValue, $reference);
+                        }, latt.html.thumbnailDefault, clearValue, rows, cols);
 
                     setCellProperties(rows, cols, {
                         element: $reference,
-                        order: $reference.data("order"),
                         html: $('<div>').append($reference.clone()).html(),
                         row: parseInt($reference.data("row")),
                         col: parseInt($reference.data("col")),
@@ -168,6 +168,7 @@
                         south: false,
                         east: false,
                         west: false,
+                        adjacents: {}
                     });
 
                     //Define available paths for that cell based on the travel data attribute
@@ -203,6 +204,22 @@
 
                 } //end col loop
             }//end row loop
+
+            //Some more setup for the grid, now that all the cells are defined
+            for(var rows = 0; rows <= latt.gridRows; rows++){
+                for(var cols = 0; cols <= latt.gridCols; cols++){
+
+                    latt.grid[rows][cols].adjacents = {
+                        north: (rows-1) < 0 ? false : latt.grid[rows-1][cols],
+                        south: (rows+1) >= latt.grid.length ? false  : latt.grid[rows+1][cols],
+                        east:  (cols+1) >= latt.grid[0].length ? false  : latt.grid[rows][cols+1],
+                        west:  (cols-1) < 0 ? false  : latt.grid[rows][cols-1],
+                    };
+
+
+                }
+            }
+            
 
             lattlog(latt);
 
@@ -275,34 +292,16 @@
                     path = [latt.grid[latt.active.row][latt.active.col]];
                 
                 var direction = hrefValue.replace("#", "");
+                
+                
+                var rOffset = latt.compassDict[direction].offsetR,
+                    cOffset = latt.compassDict[direction].offsetC;
+
+                latt.grid[latt.active.row + rOffset][latt.active.col + cOffset].directionTaken = direction;
                 path[0].directionTaken = direction;
+                path.push(latt.grid[latt.active.row + rOffset][latt.active.col +  cOffset]);
                     
-                switch(direction)
-                {
-                    case "north":
-                        latt.grid[latt.active.row-1][latt.active.col].directionTaken = direction;
-                        path.push(latt.grid[latt.active.row-1][latt.active.col]);
-                        break;
-
-                    case "east":
-                        latt.grid[latt.active.row][latt.active.col+1].directionTaken = direction;
-                        path.push(latt.grid[latt.active.row][latt.active.col+1]);
-                        break;
-
-                    case "south":
-                        latt.grid[latt.active.row+1][latt.active.col].directionTaken = direction;
-                        path.push(latt.grid[latt.active.row+1][latt.active.col]);
-                        break;
-
-                    case "west":
-                        latt.grid[latt.active.row][latt.active.col-1].directionTaken = direction;
-                        path.push(latt.grid[latt.active.row][latt.active.col-1])
-                        break;
-
-                    default:
-                        return;
-                        break;
-                }
+                
 
                 lattlog(path);
 
@@ -316,15 +315,13 @@
                 if(latt.inMotion) return;
                 else latt.inMotion = true;
 
-                var hrefValue = $(this).attr('href');
-                hrefValue = hrefValue.replace("#", "");
-                var coords = hrefValue.split("-");
+                var coords = $(this)[0].id.split("-");
 
                 var path =  solveGrid({
                                 row: latt.active.row,
                                 col: latt.active.col
                             }, latt.grid[coords[0]][coords[1]], latt.grid);
-                slideOn(path, true);                
+                slideOn(path, true);
                 return;
             });
 
@@ -380,7 +377,7 @@
                             pause = 0;
                         }
 
-                        lattlog("Taking slide " +  index + " in the " + path[index].directionTaken + " direction.")
+                        lattlog("Taking slide " + index + " in the " + path[index].directionTaken + " direction.")
                         updateActiveThumbnail( path[index+1].row, path[index+1].col);
 
                         var prevNode = index > 0 ? path[index-1] : false,
@@ -400,10 +397,11 @@
 
             function slideTo(fromNode, toNode, prevNode, isAdjacentToDestination){
 
-                var $current = $("[data-row=" + fromNode.row + "][data-col=" + fromNode.col + "]"),
-                    $target = $("[data-row=" + toNode.row + "][data-col=" + toNode.col + "]"),
-                    $prev = $("[data-row=" + prevNode.row + "][data-col=" + prevNode.col + "]");
+                var $current = latt.grid[fromNode.row][fromNode.col].element,
+                    $target = latt.grid[toNode.row][toNode.col].element;
 
+                if(prevNode){
+                    $prev = latt.grid[prevNode.row][prevNode.col].element;
                     $prev.removeAttr("style").css({
                             'float' : 'left',
                             'list-style' : 'none',
@@ -412,6 +410,8 @@
                             'width': '100%',
                             'display': 'none'
                         });
+                }
+                    
 
                     animOptions = [{}, {}, {}],
                     direction = compassToCss(fromNode.directionTaken);
@@ -468,22 +468,39 @@
             }
 
             function solveGrid(start, end, grid){
+                
                 lattlog("Starting solver.");
-                var path = [];
+                
+                var cacheIndex =  start.row + 'x' + start.col + '_' + end.row + 'x' + end.col;
+
+                lattlog("Checking cache.");
+                if( latt.pathCache.hasOwnProperty( cacheIndex ) ){
+                    return latt.pathCache[cacheIndex];
+                }
+
                 lattlog("Path initialized");
-                if ( solveGridHelper( start, end, grid, path) != null ) {
+                var path = [];
+
+                if ( depthFirstSearch( start, end, grid, path) != null ) {
+                    lattlog("Found a solution. Returning path. Caching path. Resetting grid visits.");
                     resetGridVisits();
-                    lattlog("Found a solution. Returning path.")
                     path.reverse();
+                    latt.pathCache[cacheIndex] = path;
                     return path;
+                    lattlog(latt);
                 }
 
                 resetGridVisits();
+                lattlog(latt);
                 lattlog("Solution not found! Returning null.")
                 return null;
             }
 
-            function solveGridHelper(start, end, grid,  path){
+            function breadthFirstSearch(start, end, grid, path){
+                return null;
+            }
+
+            function depthFirstSearch(start, end, grid, path){
 
                 lattlog("Currently at " + start.row + ":" + start.col);
 
@@ -505,29 +522,23 @@
                     };
 
 
-                var compass = {
-                        north: (start.row-1) < 0 ? false : grid[start.row-1][start.col],
-                        south: (start.row+1) >= grid.length ? false  : grid[start.row+1][start.col],
-                        east:  (start.col+1) >= grid[0].length ? false  : grid[start.row][start.col+1],
-                        west:  (start.col-1) < 0 ? false  : grid[start.row][start.col-1],
-                    };
-
-                lattlog(generallyTo);
+                var compass = latt.grid[rows][cols][adjacents];
                 
                 for(var direction in generallyTo){
                     if(generallyTo[direction] && compass[direction]){
-                        lattlog(compass[direction]);
+
                         lattlog("GENERAL BIAS: Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
                         if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
                             lattlog("Room is open. Going " + direction + ".");
                             grid[start.row][start.col].visited = true;
-                            if( solveGridHelper(compass[direction], end, grid, path ) != null ){
+                            if( depthFirstSearch(compass[direction], end, grid, path ) != null ){
                                 var pathNode =  grid[start.row][start.col];
                                 pathNode.directionTaken = direction;
                                 path.push(pathNode);
                                 return path;
                             }
                         }
+
                         lattlog("Closed.");
                     }
                 }
@@ -541,7 +552,7 @@
                         if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
                             lattlog("Room is open. Going " + direction + ".");
                             grid[start.row][start.col].visited = true;
-                            if( solveGridHelper(compass[direction], end, grid, path ) != null ){
+                            if( depthFirstSearch(compass[direction], end, grid, path ) != null ){
                                 var pathNode =  grid[start.row][start.col];
                                 pathNode.directionTaken = direction;
                                 path.push(pathNode);
@@ -618,7 +629,8 @@
                     });
             }
 
-            function addThumbnailToMap(customCss, thumbnail, clearValue, $reference){
+            function addThumbnailToMap(customCss, thumbnail, clearValue, row, col){
+                var idValue = (!row || !col) ? '' : 'id="' + row + '-' + col + '" ';
                 $(thumbnail).appendTo(".lattice-thumbnail-map").css({
                     'clear': clearValue,
                     'display':'block',
@@ -627,11 +639,7 @@
                     'height': latt.thumbnailHeight + 'px',
                     'margin': latt.thumbnailSpacing + 'px'
                 }).css(customCss).wrap(function(){
-                    return '<a class="lattice-grid-link" href="#' 
-                        + $reference.data('row')
-                        + '-' 
-                        + $reference.data('col')
-                        + '" ></a>';
+                    return '<a class="lattice-grid-link" href="#" ' + idValue + '" ></a>';
                 });
             }
 
