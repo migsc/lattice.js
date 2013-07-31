@@ -37,7 +37,7 @@
                 wrapper:            '<div class="" style="position:relative;"></div>',
                 thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
                 thumbnailEmpty:     '<div class"lattice-thumbnail empty"></div>',
-                thumbnailMap:       '<div class="lattice-thumbnail-map" style="opacity:0.4;position:absolute;bottom:15px;right:15px"></div>',
+                thumbnailMap:       '<div id="lattice-thumbnail-map" style="opacity:0.4;position:absolute;bottom:15px;right:15px"></div>',
                 northArrow:         '<div style="left:50%;top:15px;position:absolute;opacity:0.4;width: 0;height:0;border-left:20px solid transparent;border-right: 20px solid transparent;border-bottom: 20px solid rgb(167, 161, 161);"></div>',
                 eastArrow:          '<div style="top:50%;right:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent;border-left: 20px solid rgb(167, 161, 161);"></div>',
                 southArrow:         '<div style="left:50%;bottom:15px;position:absolute;opacity:0.4;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:20px solid rgb(167, 161, 161);"></div>',
@@ -277,11 +277,18 @@
             });
 
             $(".active").mouseleave(function(){
-                if( ! $('.lattice-thumbnail-map').is(':hover')){
-                    hideThumbnailMap();
-                    hideAdjacentLinks();
-                }
+                hideAdjacentLinks();
             });
+
+            $("#lattice-thumbnail-map").mouseenter(function(){
+                showThumbnailMap();
+            });
+
+            $("#lattice-thumbnail-map").mouseleave(function(){
+                //hideThumbnailMap();
+            });
+
+            
 
             $(".lattice-adjacent-link").click(function(e){
                 e.preventDefault();
@@ -330,8 +337,8 @@
             */
 
             function updateActiveThumbnail(row, col){
-                $(".lattice-thumbnail-map ." + latt.thumbnailActiveClass).toggleClass( latt.thumbnailActiveClass );
-                var selector = ".lattice-thumbnail-map .lattice-grid-link[href=#" + row + "-" + col + "] .lattice-thumbnail";
+                $("#lattice-thumbnail-map ." + latt.thumbnailActiveClass).toggleClass( latt.thumbnailActiveClass );
+                var selector = "#lattice-thumbnail-map .lattice-grid-link[href=#" + row + "-" + col + "] .lattice-thumbnail";
                 $(selector).toggleClass(latt.thumbnailActiveClass);
             }
 
@@ -350,11 +357,11 @@
 
             function hideThumbnailMap(){
                 if(latt.fullScreen) return;
-                $('.lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
+                $('#lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
             }
 
             function showThumbnailMap(){
-                $('.lattice-thumbnail-map').show(latt.thumbnailMapShowDuration).css('display','inline');
+                $('#lattice-thumbnail-map').show(latt.thumbnailMapShowDuration).css('display','inline');
             }
 
             function slideOn(path, usePause){
@@ -522,7 +529,7 @@
                     };
 
 
-                var compass = latt.grid[rows][cols][adjacents];
+                var compass = latt.grid[start.row][start.col].adjacents;
                 
                 for(var direction in generallyTo){
                     if(generallyTo[direction] && compass[direction]){
@@ -616,7 +623,7 @@
                             image.src = canvas.toDataURL("image/png");
                             image.style = "width:100%;height:100%;";
 
-                            $(thumbnail).append(image).appendTo(".lattice-thumbnail-map").css({
+                            $(thumbnail).append(image).appendTo("#lattice-thumbnail-map").css({
                                 'clear': clearValue,
                                 'display': 'block',
                                 'float': 'left',
@@ -630,8 +637,12 @@
             }
 
             function addThumbnailToMap(customCss, thumbnail, clearValue, row, col){
-                var idValue = (!row || !col) ? '' : 'id="' + row + '-' + col + '" ';
-                $(thumbnail).appendTo(".lattice-thumbnail-map").css({
+                
+                if(row === null  || col === null) return;
+
+                var idValue = 'id="' + row + '-' + col + '" ';
+
+                $(thumbnail).appendTo("#lattice-thumbnail-map").css({
                     'clear': clearValue,
                     'display':'block',
                     'float': 'left',
