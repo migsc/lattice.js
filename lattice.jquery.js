@@ -1,23 +1,428 @@
 /*!
  * Lattice v0.5
- * A jQuery plugin to assemble organize HTML elements in a grid fashion and do other neat things.
+ * A jQuery plugin to assemble organize HTML elements in a grid fashion and do 
+ * other neat things.
  * Original author: @chateloinus
  * Licensed under the MIT license
  */
 
+;(function($, window, document, undefined) {
 
-(function($) {
-    
     $.fn.lattice = function(config) {
 
-        /******************************
-        * OPTIONS
-        */
+            function updateActiveThumbnail(row, col){
+                $('#lattice-thumbnail-map .' + 
+                        latt.thumbnailActiveClass).toggleClass( 
+                            latt.thumbnailActiveClass );
+                var selector = '#lattice-thumbnail-map ' + 
+                        '.lattice-grid-link[href=#' + row + '-' + col +
+                         '] .lattice-thumbnail';
+                $(selector).toggleClass(latt.thumbnailActiveClass);
+            }
 
-        // Take the options that the user selects, and merge them with defaults along with defaults for runtime data.
+            function updateActivePanel(row, col){
+                latt.active.row =  row;
+                latt.active.col = col;
+            }
+
+            function hideAdjacentLinks(){
+                $('.lattice-adjacent-link').hide(latt.adjacentLinkHideDuration);
+            }
+
+            function showAdjacentLinks(){
+                $('.lattice-adjacent-link').show(latt.adjacentLinkShowDuration);
+            }
+
+            function hideThumbnailMap(){
+                if(latt.fullScreen) return;
+                $('#lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
+            }
+
+            function showThumbnailMap(){
+                $('#lattice-thumbnail-map').show(latt.thumbnailMapShowDuration)
+                                           .css('display','inline');
+            }
+
+            function slideOn(path, usePause){
+
+                if (path.length > 1 || !path ) {
+
+                    var index = 0,
+                        pause = latt.speed;
+                    var isAdjacentToDestination = ( index == path.length - 2 );
+
+                    slideTo( path[index], path[index+1], false, 
+                            isAdjacentToDestination);
+                    index++;
+
+                    window.setInterval(function(){
+                        if( (index+1) == path.length){
+                            return;
+                        }
+
+                        if( index == 0) {
+                            pause = 0;
+                        }
+
+                        lattlog('Taking slide ' + index + ' in the ' + 
+                                path[index].directionTaken + ' direction.')
+
+                        updateActiveThumbnail( path[index+1].row, 
+                                path[index+1].col);
+
+                        var prevNode = index > 0 ? path[index-1] : false,
+                            isAdjacentToDestination = ( index == path.length - 
+                                    2 );
+                               
+                        slideTo( path[index], path[index+1], prevNode, 
+                                isAdjacentToDestination);
+
+                        index++;
+
+                    }, pause);
+                    
+                }
+
+                
+                latt.inMotion = false;
+            }
+
+            function slideTo(fromNode, toNode, prevNode, 
+                    isAdjacentToDestination){
+
+                var $current = fromNode.element,
+                    $target = toNode.element;
+
+                if(prevNode){
+
+                    $prev = prevNode.element;
+                    $prev.removeAttr('style').css({
+                            'float' : 'left',
+                            'list-style' : 'none',
+                            'position': 'absolute',
+                            'height': '100%',
+                            'width': '100%',
+                            'display': 'none'
+                        });
+                }
+                    
+
+                    animOptions = [{}, {}, {}],
+                    direction = compassToCss(fromNode.directionTaken);
+
+                hideAdjacentLinks();
+
+                $.each(animOptions, function(index, value){
+                    animOptions[index][direction] = 0;
+                });
+
+                lattlog(isAdjacentToDestination);
+                lattlog(direction);
+
+                if(fromNode.directionTaken == 'west' || 
+                        fromNode.directionTaken == 'east') {
+
+                    animOptions[0][direction] = $current.width();
+                    animOptions[1][direction] = -($current.width());
+
+                } else {
+
+                    animOptions[0][direction] = $current.height();
+                    animOptions[1][direction] = -($current.height()); 
+                }
+
+                var easing = isAdjacentToDestination ?
+                        latt.adjacentEasing : latt.nonAdjacentEasing;
+
+                lattlog(easing );
+                
+                $target.addClass('active').show()
+                                          .css(animOptions[1])
+                                          .animate(animOptions[2], latt.speed, 
+                                                easing, function(){
+                                                    if(isAdjacentToDestination){
+                                                        showAdjacentLinks();
+                                                    }
+                                                });
+
+                latt.active.col = toNode.col;
+                latt.active.row = toNode.row;
+                lattlog('Update on latt:');
+                lattlog(latt);
+            }
+
+            function createGrid(length) {
+                var arr = new Array(length || 0),
+                    i = length;
+
+                if (arguments.length > 1) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    while(i--) arr[length-1 - i] = 
+                            createArray.apply(this, args);
+                }
+
+                return arr;
+            }
+
+            function getMaxData($parent, name){
+                return  $parent.children().map(function(){
+                            return parseInt($(this).data(name));
+                        }).get().sort(function(a, b) {
+                            return b - a;
+                        })[0];
+            }
+
+            function solveGrid(start, end, grid){
+                
+                lattlog('Starting solver.');
+                
+                var cacheIndex =  start.row + 'x' + start.col + '_' + end.row + 
+                                  'x' + end.col;
+
+                lattlog('Checking cache.');
+                if( latt.pathCache.hasOwnProperty( cacheIndex ) ){
+                    lattlog('Using a cached path.')
+                    return latt.pathCache[cacheIndex];
+                }
+
+                lattlog('Path initialized');
+                var path = [];
+
+                if ( depthFirstSearch( start, end, grid, path) != null ) {
+                    lattlog('Found a solution. Returning path. Caching path. ' + 
+                            'Resetting grid visits.');
+                    resetGridVisits();
+                    path.reverse();
+                    latt.pathCache[cacheIndex] = path;
+                    return path;
+                    lattlog(latt);
+                }
+
+                resetGridVisits();
+                lattlog(latt);
+                lattlog('Solution not found! Returning null.')
+                return null;
+            }
+
+            function breadthFirstSearch(start, end, grid, path){
+                return null;
+            }
+
+            function depthFirstSearch(start, end, grid, path){
+
+                lattlog('Currently at ' + start.row + ':' + start.col);
+
+                //Check if we're already at the goal
+                if(coordsAreEqual(start, end)){
+                    lattlog('We\'ve reached the end!');
+                    grid[start.row][start.col].visited =  true;
+                    var pathNode =  grid[start.row][start.col];
+                    pathNode.directionTaken = 'none';
+                    path.push(pathNode);
+                    return path;
+                }
+
+                var generallyTo = {
+                        north : start.row > end.row,
+                        east : start.col < end.col,
+                        south : start.row < end.row,
+                        west : start.col > end.col
+                    };
+
+
+                var compass = latt.grid[start.row][start.col].adjacents;
+                
+                for(var direction in generallyTo){
+                    if(generallyTo[direction] && compass[direction]){
+
+                        lattlog('GENERAL BIAS: Checking ' + 
+                                compass[direction].row + ':' + 
+                                compass[direction].col + ' to the ' + 
+                                direction );
+
+                        if(grid[start.row][start.col][direction] && 
+                                compass[direction] && 
+                                !compass[direction].visited) {
+
+                            lattlog('Room is open. Going ' + direction + '.');
+                            grid[start.row][start.col].visited = true;
+                            if( depthFirstSearch(compass[direction], end, 
+                                    grid, path ) != null ){
+                                var pathNode =  grid[start.row][start.col];
+                                pathNode.directionTaken = direction;
+                                path.push(pathNode);
+                                return path;
+                            }
+                        }
+
+                        lattlog('Closed.');
+                    }
+                }
+
+                lattlog(compass);
+
+                for (var direction in compass) {
+
+                    if (compass.hasOwnProperty(direction) && 
+                            compass[direction]) {
+
+                        lattlog(compass[direction]);
+                        lattlog('Checking ' + compass[direction].row + ':' + 
+                            compass[direction].col + ' to the ' + direction );
+
+                        if(grid[start.row][start.col][direction] && 
+                            compass[direction] && !compass[direction].visited) {
+
+                            lattlog('Room is open. Going ' + direction + '.');
+                            grid[start.row][start.col].visited = true;
+                            if( depthFirstSearch(compass[direction], end, 
+                                    grid, path ) != null ){
+
+                                var pathNode =  grid[start.row][start.col];
+                                pathNode.directionTaken = direction;
+                                path.push(pathNode);
+                                return path;
+                            }
+
+                        }
+
+                        lattlog('Closed.');
+                    }
+                }
+
+                lattlog('Reached a dead end.');
+                //If we get here, it's a dead end!
+                return null;
+            }
+
+            function coordsAreEqual(coordOne, coordTwo){
+                if(coordOne.row == coordTwo.row && 
+                        coordOne.col == coordTwo.col){
+
+                    return true;
+                }
+                return false;
+            }
+
+            function compassToCss(direction) {
+                var compass = {
+                    north: 'top',
+                    south: 'bottom',
+                    east: 'right',
+                    west: 'left'
+                };
+                return compass[direction];
+            }
+
+            function cloneObject(o) {
+                return $.extend({}, o);
+            }
+
+            function resetGridVisits() {
+                for(var rows = 0; rows <= latt.gridRows; rows++){
+                    for(var cols = 0; cols <= latt.gridCols; cols++){
+                        latt.grid[rows][cols].visited = false;
+                    }
+                }
+            }
+
+            function activateFullScreen(context){
+                $(context).css({
+                    'width': '100%',
+                    'height': '100%'
+                });
+                $('.' + latt.containerClass).css({
+                    'width': window.innerWidth + 'px',
+                    'height': $(window).height() + 'px'
+                });
+            }
+
+            function createDynamicThumbnail($reference, rows, cols, thumbnail){
+                var idSelector = '#' + $reference.attr('id');
+                    html2canvas($(idSelector), {
+                        onrendered: function(canvas, rows, cols) {
+                            var image = new Image();
+                            image.src = canvas.toDataURL('image/png');
+                            image.style = 'width:100%;height:100%;';
+
+                            $(thumbnail).append(image)
+                                        .appendTo('#lattice-thumbnail-map')
+                                        .css({
+                                            'clear': clearValue,
+                                            'display': 'block',
+                                            'float': 'left',
+                                            'width': latt.thumbnailWidth + 
+                                                     'px',
+                                            'height': latt.thumbnailHeight + 
+                                                      'px',
+                                            'margin': latt.thumbnailSpacing + 
+                                                      'px'
+                                        })
+
+                            wrapThumbnailInAnchor(thumbnail ,$reference);
+                        }
+                    });
+            }
+
+            function addThumbnailToMap(customCss, thumbnail, clearValue, row, 
+                    col){
+                
+                if(row === null  || col === null) return;
+
+                var idValue = 'id="' + row + '-' + col + '" ';
+
+                $(thumbnail).appendTo('#lattice-thumbnail-map').css({
+                    'clear': clearValue,
+                    'display':'block',
+                    'float': 'left',
+                    'width': latt.thumbnailWidth + 'px',
+                    'height': latt.thumbnailHeight + 'px',
+                    'margin': latt.thumbnailSpacing + 'px'
+                }).css(customCss).wrap(function(){
+                    return '<a class="lattice-grid-link" href="#" ' + idValue + 
+                           '" ></a>';
+                });
+            }
+
+            function setCellProperties(row, col, props){
+                
+                if(!props){
+                    latt.grid[row][col] = false;
+                    return;
+                }
+
+                if( latt.grid[row][col] === undefined ){
+                    latt.grid[row][col] = {};
+                }
+
+                for (var propName in props) {
+                    if (props.hasOwnProperty(propName)) {
+                        latt.grid[row][col][propName] = props[propName];
+                    }
+                }
+            }
+
+            function addAdjacentLink($reference, direction) {
+                $reference.append(
+                    '<a class="lattice-adjacent-link" href="#' + direction + 
+                    '">' + latt.html[direction + 'Arrow'] + '</a>'
+                );
+            }
+
+            function lattlog(mixed){
+                if( latt.debug && window.console && window.console.log) {
+                    console.log(mixed);
+                }
+            }
+
+
+        /* 
+         * Take the options that the user selects, and merge them with defaults 
+         * along with defaults for runtime data.
+         */
         var latt = $.extend({}, {
             //User selected
-            startSelector: ">:first-child",
+            startSelector: '>:first-child',
             debug: false,
             speed : 1000,
             pause : 3000,
@@ -34,14 +439,41 @@
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
-                wrapper:            '<div class="" style="position:relative;"></div>',
+                wrapper:            '<div class="" ' + 
+                                    'style="position:relative;"></div>',
                 thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
-                thumbnailEmpty:     '<div class"lattice-thumbnail empty"></div>',
-                thumbnailMap:       '<div id="lattice-thumbnail-map" style="opacity:0.4;position:absolute;bottom:15px;right:15px"></div>',
-                northArrow:         '<div style="left:50%;top:15px;position:absolute;opacity:0.4;width: 0;height:0;border-left:20px solid transparent;border-right: 20px solid transparent;border-bottom: 20px solid rgb(167, 161, 161);"></div>',
-                eastArrow:          '<div style="top:50%;right:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent;border-left: 20px solid rgb(167, 161, 161);"></div>',
-                southArrow:         '<div style="left:50%;bottom:15px;position:absolute;opacity:0.4;width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:20px solid rgb(167, 161, 161);"></div>',
-                westArrow:          '<div style="top:50%;left:15px;position:absolute;opacity:0.4;width: 0;height: 0;border-top: 20px solid transparent;border-bottom: 20px solid transparent; border-right:20px solid rgb(167, 161, 161); "></div>',
+                thumbnailEmpty:     '<div class"lattice-thumbnail empty">' + 
+                                    '</div>',
+                thumbnailMap:       '<div id="lattice-thumbnail-map" ' + 
+                                    'style="opacity:0.4;position:absolute;' + 
+                                    'bottom:15px;right:15px"></div>',
+                northArrow:         '<div style="left:50%;top:15px;' + 
+                                    'position:absolute;opacity:0.4;width:0;' + 
+                                    'height:0;' + 
+                                    'border-left:20px solid transparent;' + 
+                                    'border-right:20px solid transparent;' + 
+                                    'border-bottom:' + 
+                                    '20px solid rgb(167,161,161);"></div>',
+                eastArrow:          '<div style="top:50%;right:15px;' + 
+                                    'position:absolute;opacity:0.4;width:0;' + 
+                                    'height: 0;' + 
+                                    'border-top:20px solid transparent;' + 
+                                    'border-bottom: 20px solid transparent;' + 
+                                    'border-left: ' + 
+                                    '20px solid rgb(167, 161, 161);"></div>',
+                southArrow:         '<div style="left:50%;bottom:15px;' + 
+                                    'position:absolute;opacity:0.4;width:0;' + 
+                                    'height:0;border-left:' + 
+                                    '20px solid transparent;' + 
+                                    'border-right:20px solid transparent;' + 
+                                    'border-top:' + 
+                                    '20px solid rgb(167, 161, 161);"></div>',
+                westArrow:          '<div style="top:50%;left:15px;' + 
+                                    'position:absolute;opacity:0.4;width:0;' + 
+                                    'height:0;border-top:' + 
+                                    '20px solid transparent;border-bottom:' + 
+                                    '20px solid transparent; border-right:' + 
+                                    '20px solid rgb(167, 161, 161); "></div>',
             },
             sliderWidth: '500px',
             sliderHeight: '400px',
@@ -82,26 +514,27 @@
             pathCache: {}
         }, config);
 
-        /******************************
-        * SETUP
-        */
-
-        // If the pause is less than speed, it'll cause a flicker.
-        // This will check for that, and if it is smaller, it increases it to just about the speed.
+        /**
+         * If the pause is less than speed, it'll cause a flicker. This will 
+         * check for that, and if it is smaller, it increases it to just about 
+         * the speed.
+         */
         if(latt.pause <= latt.speed) latt.pause = latt.speed + 100;
         
         // for each item in the wrapped set
         return this.each(function() {
 
-            // cache "this."    
+            // cache 'this.'    
             var $this = $(this);
 
-            latt.gridRows = getMaxData($this, "row");
-            latt.gridCols = getMaxData($this, "col");
+            latt.gridRows = getMaxData($this, 'row');
+            latt.gridCols = getMaxData($this, 'col');
             latt.containerContext = $this.context;
 
-            // Wrap "this" in a div with a class and set some styles
-            // Adjusting the "left" css values, so need to set positioning.
+            /*
+             * Wrap 'this' in a div with a class and set some styles. Adjusting 
+             * the 'left' css values, so need to set positioning.
+             */
             $this.css({
                 'position' : 'relative',
                 'width': latt.sliderWidth,
@@ -122,32 +555,46 @@
                 activateFullScreen(this);
             }
 
-            //Add the thumbnail map
+            
             if(latt.thumnailMapEnabled){
+                //Add the thumbnail map
                 $(latt.html.thumbnailMap).appendTo('.' + latt.containerClass)
                     .width(function(){
-                        return ( latt.thumbnailWidth + ( 2 * latt.thumbnailSpacing ) ) * (latt.gridCols + 1);
+                        return ( latt.thumbnailWidth + 
+                                ( 2 * latt.thumbnailSpacing ) ) * 
+                                (latt.gridCols + 1);
                     }).height(function(){
-                        return ( latt.thumbnailHeight + ( 2 * latt.thumbnailSpacing ) ) * (latt.gridRows + 1);
+                        return ( latt.thumbnailHeight + 
+                                ( 2 * latt.thumbnailSpacing ) ) 
+                                * (latt.gridRows + 1);
                     });
             }
 
-            //Build the grid array while creating thumbnails and setting available paths along the way
+            /*
+             * Build the grid array while creating thumbnails and setting 
+             * available paths along the way
+             */
             for(var rows = 0; rows <= latt.gridRows; rows++){
                 latt.grid[rows] = [];
                 for(var cols = 0; cols <= latt.gridCols; cols++){
                     
                     //Cache the reference to the cell's element
-                    var $reference = $("[data-row=" + rows + "][data-col=" + cols + "]"),
-                        clearValue = ( cols == latt.gridCols ) ? "right" : "none";
+                    var $reference = $('[data-row=' + rows + '][data-col=' + 
+                                cols + ']'),
+                        clearValue = ( cols == latt.gridCols ) ? 
+                                'right' : 'none';
 
-                    //If an element doesn't exist for this cell, we'll use the default empty placeholder
+                    /*
+                     * If an element doesn't exist for this cell, we'll use the 
+                     * default empty placeholder
+                     */
                    if($reference.length == 0){
 
                         setCellProperties(rows, cols, false);
                         addThumbnailToMap({
                                 'background':'none'
-                            }, latt.html.thumbnailEmpty, clearValue, rows, cols);
+                            }, latt.html.thumbnailEmpty, clearValue, rows, 
+                                    cols);
                         
                         continue;
                     }
@@ -160,9 +607,9 @@
                     setCellProperties(rows, cols, {
                         element: $reference,
                         html: $('<div>').append($reference.clone()).html(),
-                        row: parseInt($reference.data("row")),
-                        col: parseInt($reference.data("col")),
-                        travel: $reference.data("travel"),
+                        row: parseInt($reference.data('row')),
+                        col: parseInt($reference.data('col')),
+                        travel: $reference.data('travel'),
                         visited: false,
                         north: false,
                         south: false,
@@ -171,12 +618,17 @@
                         adjacents: {}
                     });
 
-                    //Define available paths for that cell based on the travel data attribute
+                    /*
+                     * Define available paths for that cell based on the travel 
+                     * data attribute
+                     */
                     if (latt.grid[rows][cols].travel){
-                        $.each(latt.grid[rows][cols].travel.split(","), function(index, value){
-                            latt.grid[rows][cols][value] = true;
-                            addAdjacentLink($reference, value);
-                        });
+                        $.each(latt.grid[rows][cols].travel.split(','), 
+                                function(index, value){
+                                    latt.grid[rows][cols][value] = true;
+                                    addAdjacentLink($reference, value);
+                                }
+                        );
 
                         continue;
                     }
@@ -186,8 +638,11 @@
                         if (latt.compassDict.hasOwnProperty(direction)){
                             //TODO: Find a faster way of doing this
                             var adjacentCellSelector = 
-                                "[data-row=" + ( rows + latt.compassDict[direction].offsetR ) 
-                                + "][data-col=" + (cols + latt.compassDict[direction].offsetC) + "]";
+                                '[data-row=' + ( rows + 
+                                        latt.compassDict[direction].offsetR ) 
+                                + '][data-col=' + (cols + 
+                                        latt.compassDict[direction].offsetC) + 
+                                        ']';
                                 travelProp = {};
 
                             if( $(adjacentCellSelector).length != 0  ) {
@@ -211,9 +666,12 @@
 
                     latt.grid[rows][cols].adjacents = {
                         north: (rows-1) < 0 ? false : latt.grid[rows-1][cols],
-                        south: (rows+1) >= latt.grid.length ? false  : latt.grid[rows+1][cols],
-                        east:  (cols+1) >= latt.grid[0].length ? false  : latt.grid[rows][cols+1],
-                        west:  (cols-1) < 0 ? false  : latt.grid[rows][cols-1],
+                        south: (rows+1) >= latt.grid.length ? 
+                                false  : latt.grid[rows+1][cols],
+                        east:  (cols+1) >= latt.grid[0].length ? 
+                                false  : latt.grid[rows][cols+1],
+                        west:  (cols-1) < 0 ? 
+                                false  : latt.grid[rows][cols-1],
                     };
 
 
@@ -225,9 +683,9 @@
 
             //Set the active slide
             var $active = $this.find(latt.startSelector);
-            $active.toggleClass("active");
-            latt.active.row = parseInt($active.data("row"));
-            latt.active.col = parseInt($active.data("col"));
+            $active.toggleClass('active');
+            latt.active.row = parseInt($active.data('row'));
+            latt.active.col = parseInt($active.data('col'));
             updateActiveThumbnail(latt.active.row, latt.active.col);
 
             $('.' + latt.containerClass + ' .active').show();
@@ -250,7 +708,7 @@
                     return;
                 }
 
-                lattlog("KEYPRESS DETECTED: " + latt.keyDict[event.which]);
+                lattlog('KEYPRESS DETECTED: ' + latt.keyDict[event.which]);
 
                 latt.inMotion = true;
                 
@@ -271,26 +729,26 @@
                 return;
             })
 
-            $(".active").mouseenter(function(){
+            $('.active').mouseenter(function(){
                 showAdjacentLinks();
                 showThumbnailMap();
             });
 
-            $(".active").mouseleave(function(){
+            $('.active').mouseleave(function(){
                 hideAdjacentLinks();
             });
 
-            $("#lattice-thumbnail-map").mouseenter(function(){
+            $('#lattice-thumbnail-map').mouseenter(function(){
                 showThumbnailMap();
             });
 
-            $("#lattice-thumbnail-map").mouseleave(function(){
+            $('#lattice-thumbnail-map').mouseleave(function(){
                 //hideThumbnailMap();
             });
 
             
 
-            $(".lattice-adjacent-link").click(function(e){
+            $('.lattice-adjacent-link').click(function(e){
                 e.preventDefault();
                 if(latt.inMotion) return;
                 else latt.inMotion = true;
@@ -298,7 +756,7 @@
                 var hrefValue = $(this).attr('href'),
                     path = [latt.grid[latt.active.row][latt.active.col]];
                 
-                var direction = hrefValue.replace("#", "");
+                var direction = hrefValue.replace('#', '');
                 
                 
                 var rOffset = latt.compassDict[direction].offsetR,
@@ -317,12 +775,12 @@
                 return;
             });
 
-            $(".lattice-grid-link").click(function(e){
+            $('.lattice-grid-link').click(function(e){
                 e.preventDefault();
                 if(latt.inMotion) return;
                 else latt.inMotion = true;
 
-                var coords = $(this)[0].id.split("-");
+                var coords = $(this)[0].id.split('-');
 
                 var path =  solveGrid({
                                 row: latt.active.row,
@@ -332,357 +790,7 @@
                 return;
             });
 
-            /******************************
-            * FUNCTIONS
-            */
-
-            function updateActiveThumbnail(row, col){
-                $("#lattice-thumbnail-map ." + latt.thumbnailActiveClass).toggleClass( latt.thumbnailActiveClass );
-                var selector = "#lattice-thumbnail-map .lattice-grid-link[href=#" + row + "-" + col + "] .lattice-thumbnail";
-                $(selector).toggleClass(latt.thumbnailActiveClass);
-            }
-
-            function updateActivePanel(row, col){
-                latt.active.row =  row;
-                latt.active.col = col;
-            }
-
-            function hideAdjacentLinks(){
-                $('.lattice-adjacent-link').hide(latt.adjacentLinkHideDuration);
-            }
-
-            function showAdjacentLinks(){
-                $('.lattice-adjacent-link').show(latt.adjacentLinkShowDuration);
-            }
-
-            function hideThumbnailMap(){
-                if(latt.fullScreen) return;
-                $('#lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
-            }
-
-            function showThumbnailMap(){
-                $('#lattice-thumbnail-map').show(latt.thumbnailMapShowDuration).css('display','inline');
-            }
-
-            function slideOn(path, usePause){
-
-                if (path.length > 1 || !path ) {
-
-                    var index = 0,
-                        pause = latt.speed;
-                    var isAdjacentToDestination = ( index == path.length - 2 );
-
-                    slideTo( path[index], path[index+1], false, isAdjacentToDestination);
-                    index++;
-
-                    window.setInterval(function(){
-                        if( (index+1) == path.length){
-                            return;
-                        }
-
-                        if( index == 0) {
-                            pause = 0;
-                        }
-
-                        lattlog("Taking slide " + index + " in the " + path[index].directionTaken + " direction.")
-                        updateActiveThumbnail( path[index+1].row, path[index+1].col);
-
-                        var prevNode = index > 0 ? path[index-1] : false,
-                            isAdjacentToDestination = ( index == path.length - 2 );
-                               
-                        slideTo( path[index], path[index+1], prevNode, isAdjacentToDestination);
-
-                        index++;
-
-                    }, pause);
-                    
-                }
-
-                
-                latt.inMotion = false;
-            }
-
-            function slideTo(fromNode, toNode, prevNode, isAdjacentToDestination){
-
-                var $current = latt.grid[fromNode.row][fromNode.col].element,
-                    $target = latt.grid[toNode.row][toNode.col].element;
-
-                if(prevNode){
-                    $prev = latt.grid[prevNode.row][prevNode.col].element;
-                    $prev.removeAttr("style").css({
-                            'float' : 'left',
-                            'list-style' : 'none',
-                            'position': 'absolute',
-                            'height': '100%',
-                            'width': '100%',
-                            'display': 'none'
-                        });
-                }
-                    
-
-                    animOptions = [{}, {}, {}],
-                    direction = compassToCss(fromNode.directionTaken);
-
-                hideAdjacentLinks();
-
-                $.each(animOptions, function(index, value){
-                    animOptions[index][direction] = 0;
-                });
-
-                lattlog(isAdjacentToDestination);
-                lattlog(direction);
-
-                if(fromNode.directionTaken == 'west' || fromNode.directionTaken == 'east') {
-                    animOptions[0][direction] = $current.width();
-                    animOptions[1][direction] = -($current.width());
-                } else {
-                    animOptions[0][direction] = $current.height();
-                    animOptions[1][direction] = -($current.height()); 
-                }
-
-                var easing = isAdjacentToDestination ? latt.adjacentEasing : latt.nonAdjacentEasing;
-                lattlog(easing );
-                
-                $current.removeClass('active').animate(animOptions[0], latt.speed, easing);
-                $target.addClass('active').show().css(animOptions[1]).animate(animOptions[2], latt.speed, easing, function(){
-                    if(isAdjacentToDestination){
-                        showAdjacentLinks();
-                    }
-                });
-
-                latt.active.col = toNode.col;
-                latt.active.row = toNode.row;
-            }
-
-            function createGrid(length) {
-                var arr = new Array(length || 0),
-                    i = length;
-
-                if (arguments.length > 1) {
-                    var args = Array.prototype.slice.call(arguments, 1);
-                    while(i--) arr[length-1 - i] = createArray.apply(this, args);
-                }
-
-                return arr;
-            }
-
-            function getMaxData($parent, name){
-                return  $parent.children().map(function(){
-                            return parseInt($(this).data(name));
-                        }).get().sort(function(a, b) {
-                            return b - a;
-                        })[0];
-            }
-
-            function solveGrid(start, end, grid){
-                
-                lattlog("Starting solver.");
-                
-                var cacheIndex =  start.row + 'x' + start.col + '_' + end.row + 'x' + end.col;
-
-                lattlog("Checking cache.");
-                if( latt.pathCache.hasOwnProperty( cacheIndex ) ){
-                    return latt.pathCache[cacheIndex];
-                }
-
-                lattlog("Path initialized");
-                var path = [];
-
-                if ( depthFirstSearch( start, end, grid, path) != null ) {
-                    lattlog("Found a solution. Returning path. Caching path. Resetting grid visits.");
-                    resetGridVisits();
-                    path.reverse();
-                    latt.pathCache[cacheIndex] = path;
-                    return path;
-                    lattlog(latt);
-                }
-
-                resetGridVisits();
-                lattlog(latt);
-                lattlog("Solution not found! Returning null.")
-                return null;
-            }
-
-            function breadthFirstSearch(start, end, grid, path){
-                return null;
-            }
-
-            function depthFirstSearch(start, end, grid, path){
-
-                lattlog("Currently at " + start.row + ":" + start.col);
-
-                //Check if we're already at the goal
-                if(coordsAreEqual(start, end)){
-                    lattlog("We've reached the end!");
-                    grid[start.row][start.col].visited =  true;
-                    var pathNode =  grid[start.row][start.col];
-                    pathNode.directionTaken = 'none';
-                    path.push(pathNode);
-                    return path;
-                }
-
-                var generallyTo = {
-                        north : start.row > end.row,
-                        east : start.col < end.col,
-                        south : start.row < end.row,
-                        west : start.col > end.col
-                    };
-
-
-                var compass = latt.grid[start.row][start.col].adjacents;
-                
-                for(var direction in generallyTo){
-                    if(generallyTo[direction] && compass[direction]){
-
-                        lattlog("GENERAL BIAS: Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
-                        if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
-                            lattlog("Room is open. Going " + direction + ".");
-                            grid[start.row][start.col].visited = true;
-                            if( depthFirstSearch(compass[direction], end, grid, path ) != null ){
-                                var pathNode =  grid[start.row][start.col];
-                                pathNode.directionTaken = direction;
-                                path.push(pathNode);
-                                return path;
-                            }
-                        }
-
-                        lattlog("Closed.");
-                    }
-                }
-
-                lattlog(compass);
-
-                for (var direction in compass) {
-                    if (compass.hasOwnProperty(direction) && compass[direction]) {
-                        lattlog(compass[direction]);
-                        lattlog("Checking " + compass[direction].row + ":" + compass[direction].col + " to the " + direction );
-                        if(grid[start.row][start.col][direction] && compass[direction] && !compass[direction].visited) {
-                            lattlog("Room is open. Going " + direction + ".");
-                            grid[start.row][start.col].visited = true;
-                            if( depthFirstSearch(compass[direction], end, grid, path ) != null ){
-                                var pathNode =  grid[start.row][start.col];
-                                pathNode.directionTaken = direction;
-                                path.push(pathNode);
-                                return path;
-                            }
-                        }
-                        lattlog("Closed.");
-                    }
-                }
-
-                lattlog("Reached a dead end.");
-                //If we get here, it's a dead end!
-                return null;
-            }
-
-            function coordsAreEqual(coordOne, coordTwo){
-                if(coordOne.row == coordTwo.row && coordOne.col == coordTwo.col){
-                    return true;
-                }
-                return false;
-            }
-
-            function compassToCss(direction) {
-                var compass = {
-                    north: 'top',
-                    south: 'bottom',
-                    east: 'right',
-                    west: 'left'
-                };
-                return compass[direction];
-            }
-
-            function cloneObject(o) {
-                return $.extend({}, o);
-            }
-
-            function resetGridVisits() {
-                for(var rows = 0; rows <= latt.gridRows; rows++){
-                    for(var cols = 0; cols <= latt.gridCols; cols++){
-                        latt.grid[rows][cols].visited = false;
-                    }
-                }
-            }
-
-            function activateFullScreen(context){
-                $(context).css({
-                    'width': '100%',
-                    'height': '100%'
-                });
-                $('.' + latt.containerClass).css({
-                    'width': window.innerWidth + 'px',
-                    'height': $(window).height() + 'px'
-                });
-            }
-
-            function createDynamicThumbnail($reference, rows, cols, thumbnail){
-                var idSelector = "#" + $reference.attr("id");
-                    html2canvas($(idSelector), {
-                        onrendered: function(canvas, rows, cols) {
-                            var image = new Image();
-                            image.src = canvas.toDataURL("image/png");
-                            image.style = "width:100%;height:100%;";
-
-                            $(thumbnail).append(image).appendTo("#lattice-thumbnail-map").css({
-                                'clear': clearValue,
-                                'display': 'block',
-                                'float': 'left',
-                                'width': latt.thumbnailWidth + 'px',
-                                'height': latt.thumbnailHeight + 'px',
-                                'margin': latt.thumbnailSpacing + 'px'
-                            })
-                            wrapThumbnailInAnchor(thumbnail ,$reference);
-                        }
-                    });
-            }
-
-            function addThumbnailToMap(customCss, thumbnail, clearValue, row, col){
-                
-                if(row === null  || col === null) return;
-
-                var idValue = 'id="' + row + '-' + col + '" ';
-
-                $(thumbnail).appendTo("#lattice-thumbnail-map").css({
-                    'clear': clearValue,
-                    'display':'block',
-                    'float': 'left',
-                    'width': latt.thumbnailWidth + 'px',
-                    'height': latt.thumbnailHeight + 'px',
-                    'margin': latt.thumbnailSpacing + 'px'
-                }).css(customCss).wrap(function(){
-                    return '<a class="lattice-grid-link" href="#" ' + idValue + '" ></a>';
-                });
-            }
-
-            function setCellProperties(row, col, props){
-                
-                if(!props){
-                    latt.grid[row][col] = false;
-                    return;
-                }
-
-                if( latt.grid[row][col] === undefined ){
-                    latt.grid[row][col] = {};
-                }
-
-                for (var propName in props) {
-                    if (props.hasOwnProperty(propName)) {
-                        latt.grid[row][col][propName] = props[propName];
-                    }
-                }
-            }
-
-            function addAdjacentLink($reference, direction) {
-                $reference.append(
-                    '<a class="lattice-adjacent-link" href="#' + direction + '">' + latt.html[direction + 'Arrow'] + '</a>'
-                );
-            }
-
-            function lattlog(mixed){
-                if( latt.debug && window.console && window.console.log) {
-                    console.log(mixed);
-                }
-            }
+            
 
 
         }); // end each     
@@ -691,4 +799,4 @@
 
     } // End plugin.
 
-})(jQuery);
+})(jQuery, window, document);
