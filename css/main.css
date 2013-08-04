@@ -56,3 +56,11 @@ p{
 	-webkit-transition:background-color 2s;
 }
 
+.slide-ff {
+	width: 400px !important;
+	height: 400px !important;
+	display: inline-block;
+	float: left;
+	clear: both;
+}
+

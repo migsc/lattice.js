@@ -10,6 +10,8 @@
 
     $.fn.lattice = function(config) {
 
+            'use strict';
+
             function updateActiveThumbnail(row, col){
                 $('#lattice-thumbnail-map .' + 
                         latt.thumbnailActiveClass).toggleClass( 
@@ -95,7 +97,7 @@
 
                 if(prevNode){
 
-                    $prev = prevNode.element;
+                    var $prev = prevNode.element;
                     $prev.removeAttr('style').css({
                             'float' : 'left',
                             'list-style' : 'none',
@@ -107,7 +109,7 @@
                 }
                     
 
-                    animOptions = [{}, {}, {}],
+                var animOptions = [{}, {}, {}],
                     direction = compassToCss(fromNode.directionTaken);
 
                 hideAdjacentLinks();
@@ -216,7 +218,9 @@
                 if(coordsAreEqual(start, end)){
                     lattlog('We\'ve reached the end!');
                     grid[start.row][start.col].visited =  true;
+                    
                     var pathNode =  grid[start.row][start.col];
+                    
                     pathNode.directionTaken = 'none';
                     path.push(pathNode);
                     return path;
@@ -634,7 +638,7 @@
                     }
 
                     //No path data attribute? Go by adjacency
-                    for( direction in latt.compassDict ){
+                    for( var direction in latt.compassDict ){
                         if (latt.compassDict.hasOwnProperty(direction)){
                             //TODO: Find a faster way of doing this
                             var adjacentCellSelector = 
@@ -642,7 +646,7 @@
                                         latt.compassDict[direction].offsetR ) 
                                 + '][data-col=' + (cols + 
                                         latt.compassDict[direction].offsetC) + 
-                                        ']';
+                                        ']',
                                 travelProp = {};
 
                             if( $(adjacentCellSelector).length != 0  ) {
@@ -757,7 +761,6 @@
                     path = [latt.grid[latt.active.row][latt.active.col]];
                 
                 var direction = hrefValue.replace('#', '');
-                
                 
                 var rOffset = latt.compassDict[direction].offsetR,
                     cOffset = latt.compassDict[direction].offsetC;

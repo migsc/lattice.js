@@ -13,6 +13,34 @@
 		<div id="plugin-example-1">
 			<div id="container">
 
+				<div id="gunslinger-1" class="slide slide-yellow slide-ff" data-row="0" data-col="2">
+					<div class="text-container">
+						<h2>One</h2>
+						<p>The man in black fled across the desert, and the gunslinger followed.</p>
+					</div>
+					<a href="#" class="next">NEXT</a>
+				</div>
+
+				<div id="gunslinger-2" class="slide slide-green slide-ff" data-row="1" data-col="2">
+					<div class="text-container">
+						<h2>Two</h2>
+						<p>The desert was the apotheosis of all deserts, huge, standing to the sky for what looked like eternity in all directions.</p>
+					</div>
+					<a href="#" class="next">NEXT</a>
+					<a href="#" class="previous">PREVIOUS</a>
+				</div>
+
+				<div id="gunslinger-3" class="slide slide-blue slide-ff" data-row="1" data-col="3">
+					<div class="text-container">
+						<h2>Three</h2>
+						<p>It was white and blinding and waterless and without feature save for the faint, cloudy haze of the mountains which sketched themselves on the horizon and the devil-grass which brought sweet dreams, nightmares, death.</p>
+					</div>
+					<a href="#" class="previous">PREVIOUS</a>
+				</div>
+
+			</div>
+			<!-- <div id="container">
+
 				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2">
 					<div class="text-container">
 						<h2>One</h2>
@@ -166,27 +194,13 @@
 						<p>He breasted a gently rising dune (although there was no sand here; the desert was hardpan, and even the harsh winds that blew when dark came raised only an aggravating harsh dust like scouring powder) and saw the kicked remains of a tiny campfire on the lee side, the side the sun would quit earliest.</p>
 					</div>
 				</div>
-
-<!-- 				<div id="gunslinger-23" class="slide slide-blue" data-row="4" data-col="2">
-					<div class="text-container">
-						<h2>Twenty Three</h2>
-						<p>Small signs like this, once more affirming the man in black's possible humanity, never failed to please him.</p>
-					</div>
-				</div>
-
-				<div id="gunslinger-24" class="slide slide-green" data-row="6" data-col="1">
-					<div class="text-container">
-						<h2>Twenty Four</h2>
-						<p>His lips stretched in the pitted, flaked remains of his face. The grin was gruesome, painful. He squatted.</p>
-					</div>
-				</div>  -->
-			</div>
+			</div> -->
 		</div>
 		<!-- <div style="width:200px;height:200px;background-color:whitesmoke;border:solid 1px lightgray;"><h1>hello</h1></div>-->
-		<div class="canvas-test"></div>
+		<!-- <div class="canvas-test"></div> -->
 		<script>
 			jQuery(document).ready(function(){
-				$("#container").lattice({
+				/*$("#container").lattice({
 					startSelector: ".slide-1",
 					transition: "slide",
 					speed : 1500,
@@ -197,18 +211,78 @@
             		thumbnailHeight: 15,
             		debug: true,
 				});
-				// $("#container").children().each(function(){
-				// 	console.log("#" + $(this).attr('id'));
-				// 	html2canvas($("#" + $(this).attr('id')), {
-    //                     onrendered: function(canvas) {
-    //                         var image = new Image();
-    //                         image.src = canvas.toDataURL("image/png");
-    //                         $('.canvas-test').append(image);
-    //                     }
-    //                 });
+				$("#container").children().each(function(){
+					console.log("#" + $(this).attr('id'));
+					html2canvas($("#" + $(this).attr('id')), {
+                        onrendered: function(canvas) {
+                            var image = new Image();
+                            image.src = canvas.toDataURL("image/png");
+                            $('.canvas-test').append(image);
+                        }
+                    });
 
-				// });
+				});
+*/
 			});
+			$(window).load (function() {
+				var theSlide = $('#container .slide-ff');
+				var theWidth = theSlide.width()
+				var theHeight = theSlide.height();
+				//wrap into mother div
+				$('#container').wrap('<div id="mother" />');					
+				//assign height width and overflow hidden to mother
+				$('#mother').css({
+					width: function() {
+					return theWidth;
+				  }, 
+					height: function() {
+					return theHeight;
+				  }, 
+					position: 'relative',
+					overflow: 'hidden'  	
+				});
+				//get total of image sizes and set as width for ul 
+				/*var totalWidth = theSlide.length * theWidth;
+				$('#container').css({
+					width: function(){
+					return totalWidth;	
+				}				
+				});
+				*/
+				var totalHeight = theSlide.length * theHeight;
+				$('#container').css({
+					height: function(){
+					return totalHeight;	
+				}				
+				});
+
+
+				$(theSlide).each(		
+					function(intIndex){	
+						console.log($(this));
+						$(this).find('.next').bind('click', function(){
+							$(this).parent('.slide-ff').parent('#container').animate({
+									//'margin-left': (-(intIndex + 1) * theWidth)	
+									'margin-top': (-(intIndex + 1) * theHeight)				
+							}, 1000);
+						});
+						$(this).find('.previous').bind('click', function(){
+							$(this).parent('.slide-ff').parent('#container').animate({
+									//"margin-left": (-(intIndex - 1) * theWidth)		
+									"margin-top": (-(intIndex - 1) * theHeight)				
+							}, 1000);
+						});								 
+				});//close .each()
+				
+			});//doc ready
 		</script>
+		<style type="text/css">
+			*{padding:0; margin:0;}
+			#container {}
+			#container .slide-ff {float:left; .slide-ffst-style:none; position:relative; }
+			#container .slide-ff a.next {position:absolute; left:100px; z-index: 999 !important;font-weight: bolder;}
+			#container .slide-ff a.previous{position:absolute; left:0px; z-index: 999 !important;font-weight: bolder;}
+			#container .slide-ff a.startover{position:absolute; left:200px; z-index: 999 !important;font-weight: bolder;}
+		</style>
 	</body>
 </html>
