@@ -17,8 +17,10 @@
                         latt.thumbnailActiveClass).toggleClass( 
                             latt.thumbnailActiveClass );
                 var selector = '#lattice-thumbnail-map ' + 
-                        '.lattice-grid-link[href=#' + row + '-' + col +
-                         '] .lattice-thumbnail';
+                        '.lattice-grid-link#L' + row + '-' + col +
+                         ' .lattice-thumbnail';
+                lattlog('GOOBERS:');
+                lattlog($(selector));
                 $(selector).toggleClass(latt.thumbnailActiveClass);
             }
 
@@ -118,7 +120,7 @@
                 var $current = fromNode.element,
                     $target = toNode.element,
                     easing = isAdjacentToDestination ?
-                        latt.adjacentEasing : latt.nonAdjacentEasing;
+                        latt.adjacentEasing : latt.nonAdjacentEasing,
                     animAfter = function(){
                                     if(isAdjacentToDestination){
                                         showAdjacentLinks();
@@ -128,9 +130,7 @@
                         fromNode.row, fromNode.col);
 
                 hideAdjacentLinks();
-                lattlog(isAdjacentToDestination);
-                lattlog(direction);
-                
+               
                 var animOptions = {};
                 animOptions[animCss.prop] = animCss.val;
 
@@ -173,12 +173,16 @@
                 
                 lattlog('Starting solver.');
                 
-                var cacheIndex =  start.row + 'x' + start.col + '_' + end.row + 
-                                  'x' + end.col;
+                var cacheIndex =  start.cellName + '_' + end.cellName;
+                lattlog('BIG DICKS: ' + start.cellName + '_' + end.cellName);
+                lattlog(start.cellName);
 
                 lattlog('Checking cache.');
-                if( latt.pathCache.hasOwnProperty( cacheIndex ) ){
+                if( latt.usePathCaching && 
+                    latt.pathCache.hasOwnProperty( cacheIndex ) ){
+
                     lattlog('Using a cached path.')
+                    lattlog(latt.pathCache[cacheIndex]);
                     return latt.pathCache[cacheIndex];
                 }
 
@@ -369,7 +373,7 @@
                 
                 if(row === null  || col === null) return;
 
-                var idValue = 'id="' + row + '-' + col + '" ';
+                var idValue = 'id="L' + row + '-' + col + '" ';
 
                 $(thumbnail).appendTo('#lattice-thumbnail-map').css({
                     'clear': clearValue,
@@ -436,6 +440,7 @@
             adjacentLinkShowDuration: 700,
             thumbnailMapHideDuration: 200,
             thumbnailMapShowDuration: 700,
+            usePathCaching: false,
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
@@ -564,7 +569,7 @@
             
             if(latt.thumbnailMapEnabled){
                 //Add the thumbnail map
-                $(latt.html.thumbnailMap).appendTo('.' + latt.containerClass)
+                $(latt.html.thumbnailMap).appendTo('#lattice-wrap')
                     .width(function(){
                         return ( latt.thumbnailWidth + 
                                 ( 2 * latt.thumbnailSpacing ) ) * 
@@ -580,7 +585,6 @@
              * Build the grid array while creating thumbnails and setting 
              * available paths along the way
              */
-            
             for(var rows = 0; rows <= latt.gridRows; rows++){
                 latt.grid[rows] = [];
                 for(var cols = 0; cols <= latt.gridCols; cols++){
@@ -615,8 +619,12 @@
                             }, latt.html.thumbnailDefault, clearValue, rows, 
                                 cols);
 
+                        var cellRow = parseInt($reference.data('row')),
+                            cellCol = parseInt($reference.data('col'));
+
                         setCellProperties(rows, cols, {
                             element: $reference,
+                            cellName: cellRow + 'x' + cellCol,
                             html: $('<div>').append($reference.clone()).html(),
                             row: parseInt($reference.data('row')),
                             col: parseInt($reference.data('col')),
@@ -704,8 +712,14 @@
             //Set the active slide
             var $active = $this.find(latt.startSelector);
             $active.toggleClass('active');
+
             latt.active.row = parseInt($active.data('row'));
             latt.active.col = parseInt($active.data('col'));
+            $this.css({
+                'margin-top' : - ( latt.active.row * latt.sliderHeight ) + 'px',
+                'margin-left' : - ( latt.active.col * latt.sliderWidth ) + 'px',
+            });
+
             updateActiveThumbnail(latt.active.row, latt.active.col);
 
             $('.' + latt.containerClass + ' .active').show();
@@ -799,12 +813,11 @@
                 if(latt.inMotion) return;
                 else latt.inMotion = true;
 
-                var coords = $(this)[0].id.split('-');
+                var coords = $(this)[0].id.replace('L', '').split('-');
 
-                var path =  solveGrid({
-                                row: latt.active.row,
-                                col: latt.active.col
-                            }, latt.grid[coords[0]][coords[1]], latt.grid);
+                var path =  solveGrid(
+                                latt.grid[latt.active.row][latt.active.col], 
+                                latt.grid[coords[0]][coords[1]], latt.grid);
                 slideOn(path, true);
                 return;
             });

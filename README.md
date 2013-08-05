@@ -14,7 +14,7 @@ This is what I plan to implement before v1.0
 - [ ] Callback support on animation and navigation
 - [ ] Create an actual full screen mode, not the "full window" functionality that's there currently, that I mistakenly _called_ 'fullscreen' mode, ha.
 - [ ] Ability to activate fullscreen at runtime with an awesome transition
-- [ ] Thumbnail support through the data-thumbnail attribute (specifies CDD ID of an image)
+- [ ] Thumbnail support through the data-thumbnail attribute (specifies CSS ID of an image)
 - [ ] Dynmaic thumbnails by including the dynamic 'self' tag [1]
 - [ ] Refactor useful methods into a new pattern to allow invoking after initialization [2]
 - [ ] Peformance mode for heavy web apps, where more information is provided about the DOM in intialization options, rather than having to traverse the the DOM for data-attributes.
