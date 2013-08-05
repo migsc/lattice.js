@@ -12,7 +12,7 @@
 
             'use strict';
 
-            function updateActiveThumbnail(row, col){
+            var updateActiveThumbnail = function(row, col){
                 $('#lattice-thumbnail-map .' + 
                         latt.thumbnailActiveClass).toggleClass( 
                             latt.thumbnailActiveClass );
@@ -22,30 +22,30 @@
                 $(selector).toggleClass(latt.thumbnailActiveClass);
             }
 
-            function updateActivePanel(row, col){
+            var updateActivePanel = function(row, col){
                 latt.active.row =  row;
                 latt.active.col = col;
             }
 
-            function hideAdjacentLinks(){
+            var hideAdjacentLinks = function(){
                 $('.lattice-adjacent-link').hide(latt.adjacentLinkHideDuration);
             }
 
-            function showAdjacentLinks(){
+            var showAdjacentLinks = function(){
                 $('.lattice-adjacent-link').show(latt.adjacentLinkShowDuration);
             }
 
-            function hideThumbnailMap(){
+            var hideThumbnailMap = function(){
                 if(latt.fullScreen) return;
                 $('#lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
             }
 
-            function showThumbnailMap(){
+            var showThumbnailMap = function (){
                 $('#lattice-thumbnail-map').show(latt.thumbnailMapShowDuration)
                                            .css('display','inline');
             }
 
-            function slideOn(path, usePause){
+            var slideOn = function (path, usePause){
 
                 if (path.length > 1 || !path ) {
 
@@ -89,59 +89,53 @@
                 latt.inMotion = false;
             }
 
-            function slideTo(fromNode, toNode, prevNode, 
+            var translateDirectionToCss = function(direction, row, col){
+                var translation = {};
+
+                if(direction === 'north' || direction === 'south') {
+                    translation.prop = 'margin-top';
+                    if( direction === 'north'){
+                        translation.val = -(row - 1) * latt.sliderHeight;
+                    } else {
+                        translation.val = -(row + 1) * latt.sliderHeight;
+                    }
+                } else {
+                    translation.prop = 'margin-left';
+                    if( direction === 'west'){
+                        translation.val = -(col - 1) * latt.sliderWidth;
+                    } else {
+                        translation.val = -(col + 1) * latt.sliderWidth;
+                    }
+                }
+
+                return translation;
+            }
+            
+            //TODO: Refactor this
+            var slideTo = function (fromNode, toNode, prevNode, 
                     isAdjacentToDestination){
 
                 var $current = fromNode.element,
-                    $target = toNode.element;
-
-                if(prevNode){
-
-                    var $prev = prevNode.element;
-                    $prev.removeAttr('style').css({
-                            'float' : 'left',
-                            'list-style' : 'none',
-                            'position': 'absolute',
-                            'height': '100%',
-                            'width': '100%',
-                            'display': 'none'
-                        });
-                }
-                    
-
-                var animOptions = [{}, {}, {}],
-                    direction = compassToCss(fromNode.directionTaken);
+                    $target = toNode.element,
+                    easing = isAdjacentToDestination ?
+                        latt.adjacentEasing : latt.nonAdjacentEasing;
+                    animAfter = function(){
+                                    if(isAdjacentToDestination){
+                                        showAdjacentLinks();
+                                    }
+                                },
+                    animCss = translateDirectionToCss(fromNode.directionTaken, 
+                        fromNode.row, fromNode.col);
 
                 hideAdjacentLinks();
-
-                $.each(animOptions, function(index, value){
-                    animOptions[index][direction] = 0;
-                });
-
                 lattlog(isAdjacentToDestination);
                 lattlog(direction);
-
-                if(fromNode.directionTaken == 'west' || 
-                        fromNode.directionTaken == 'east') {
-
-                    animOptions[0][direction] = $current.width();
-                    animOptions[1][direction] = -($current.width());
-
-                } else {
-
-                    animOptions[0][direction] = $current.height();
-                    animOptions[1][direction] = -($current.height()); 
-                }
-
-                var easing = isAdjacentToDestination ?
-                        latt.adjacentEasing : latt.nonAdjacentEasing;
-
-                lattlog(easing );
                 
-                $target.addClass('active').show()
-                                          .css(animOptions[1])
-                                          .animate(animOptions[2], latt.speed, 
-                                                easing, function(){
+                var animOptions = {};
+                animOptions[animCss.prop] = animCss.val;
+
+                $current.parent('#container').animate(
+                    animOptions, latt.speed, easing, function(){
                                                     if(isAdjacentToDestination){
                                                         showAdjacentLinks();
                                                     }
@@ -149,11 +143,12 @@
 
                 latt.active.col = toNode.col;
                 latt.active.row = toNode.row;
+
                 lattlog('Update on latt:');
                 lattlog(latt);
             }
 
-            function createGrid(length) {
+            var createGrid = function(length) {
                 var arr = new Array(length || 0),
                     i = length;
 
@@ -166,7 +161,7 @@
                 return arr;
             }
 
-            function getMaxData($parent, name){
+            var getMaxData = function($parent, name){
                 return  $parent.children().map(function(){
                             return parseInt($(this).data(name));
                         }).get().sort(function(a, b) {
@@ -174,7 +169,7 @@
                         })[0];
             }
 
-            function solveGrid(start, end, grid){
+            var solveGrid = function(start, end, grid){
                 
                 lattlog('Starting solver.');
                 
@@ -206,11 +201,11 @@
                 return null;
             }
 
-            function breadthFirstSearch(start, end, grid, path){
+            var breadthFirstSearch = function(start, end, grid, path){
                 return null;
             }
 
-            function depthFirstSearch(start, end, grid, path){
+            var depthFirstSearch = function(start, end, grid, path){
 
                 lattlog('Currently at ' + start.row + ':' + start.col);
 
@@ -299,7 +294,7 @@
                 return null;
             }
 
-            function coordsAreEqual(coordOne, coordTwo){
+            var coordsAreEqual = function(coordOne, coordTwo){
                 if(coordOne.row == coordTwo.row && 
                         coordOne.col == coordTwo.col){
 
@@ -308,7 +303,7 @@
                 return false;
             }
 
-            function compassToCss(direction) {
+            var compassToCss = function(direction) {
                 var compass = {
                     north: 'top',
                     south: 'bottom',
@@ -318,11 +313,11 @@
                 return compass[direction];
             }
 
-            function cloneObject(o) {
+            var cloneObject = function(o) {
                 return $.extend({}, o);
             }
 
-            function resetGridVisits() {
+            var resetGridVisits = function() {
                 for(var rows = 0; rows <= latt.gridRows; rows++){
                     for(var cols = 0; cols <= latt.gridCols; cols++){
                         latt.grid[rows][cols].visited = false;
@@ -330,7 +325,7 @@
                 }
             }
 
-            function activateFullScreen(context){
+            var activateFullScreen =function(context){
                 $(context).css({
                     'width': '100%',
                     'height': '100%'
@@ -341,7 +336,8 @@
                 });
             }
 
-            function createDynamicThumbnail($reference, rows, cols, thumbnail){
+            //TODO: Figure out how to make this work
+            var createDynamicThumbnail = function($reference, rows, cols, thumbnail){
                 var idSelector = '#' + $reference.attr('id');
                     html2canvas($(idSelector), {
                         onrendered: function(canvas, rows, cols) {
@@ -368,7 +364,7 @@
                     });
             }
 
-            function addThumbnailToMap(customCss, thumbnail, clearValue, row, 
+            var addThumbnailToMap = function(customCss, thumbnail, clearValue, row, 
                     col){
                 
                 if(row === null  || col === null) return;
@@ -388,7 +384,7 @@
                 });
             }
 
-            function setCellProperties(row, col, props){
+            var setCellProperties = function(row, col, props){
                 
                 if(!props){
                     latt.grid[row][col] = false;
@@ -406,14 +402,14 @@
                 }
             }
 
-            function addAdjacentLink($reference, direction) {
+            var addAdjacentLink = function($reference, direction) {
                 $reference.append(
                     '<a class="lattice-adjacent-link" href="#' + direction + 
                     '">' + latt.html[direction + 'Arrow'] + '</a>'
                 );
             }
 
-            function lattlog(mixed){
+            var lattlog = function(mixed){
                 if( latt.debug && window.console && window.console.log) {
                     console.log(mixed);
                 }
@@ -432,7 +428,7 @@
             pause : 3000,
             adjacentEasing: 'swing',
             nonAdjacentEasing: 'linear',
-            thumnailMapEnabled : true,
+            thumbnailMapEnabled : true,
             thumbnailWidth : 15,
             thumbnailHeight: 15,
             thumbnailSpacing: 3,
@@ -443,8 +439,9 @@
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
-                wrapper:            '<div class="" ' + 
-                                    'style="position:relative;"></div>',
+                wrapper:            '<div id="lattice-wrap" ' + 
+                                    'style="position:relative;' + 
+                                    'overflow:hidden;"></div>',
                 thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
                 thumbnailEmpty:     '<div class"lattice-thumbnail empty">' + 
                                     '</div>',
@@ -479,8 +476,8 @@
                                     '20px solid transparent; border-right:' + 
                                     '20px solid rgb(167, 161, 161); "></div>',
             },
-            sliderWidth: '500px',
-            sliderHeight: '400px',
+            sliderWidth: 500,
+            sliderHeight: 400,
             fullScreen: false,
             dynamicThumbnails: true,
             //Runtime data
@@ -528,11 +525,13 @@
         // for each item in the wrapped set
         return this.each(function() {
 
-            // cache 'this.'    
+            // Cache 'this'    
             var $this = $(this);
 
+            // Cache the grid size
             latt.gridRows = getMaxData($this, 'row');
             latt.gridCols = getMaxData($this, 'col');
+
             latt.containerContext = $this.context;
 
             /*
@@ -541,18 +540,21 @@
              */
             $this.css({
                 'position' : 'relative',
-                'width': latt.sliderWidth,
-                'height': latt.sliderHeight,
-                'overflow': 'hidden',
-            }).addClass(latt.containerClass);
+                'width' : (latt.gridCols + 1) * latt.sliderWidth + 'px',
+                'height' : (latt.gridRows + 1) * latt.sliderHeight + 'px'
+            }).addClass(latt.containerClass).wrap(latt.html.wrapper);
+
+            $('#lattice-wrap').css({
+                'width': latt.sliderWidth + 'px',
+                'height': latt.sliderHeight + 'px'
+            });
 
             $this.children().css({
-                'float' : 'left',
                 'list-style' : 'none',
                 'position': 'absolute',
-                'height': '100%',
-                'width': '100%',
-                'display': 'none'
+                'width' : latt.sliderWidth + 'px',
+                'height' : latt.sliderHeight + 'px',
+                'display': 'block'
             });
 
             if(latt.fullScreen) {
@@ -560,7 +562,7 @@
             }
 
             
-            if(latt.thumnailMapEnabled){
+            if(latt.thumbnailMapEnabled){
                 //Add the thumbnail map
                 $(latt.html.thumbnailMap).appendTo('.' + latt.containerClass)
                     .width(function(){
@@ -578,55 +580,68 @@
              * Build the grid array while creating thumbnails and setting 
              * available paths along the way
              */
+            
             for(var rows = 0; rows <= latt.gridRows; rows++){
                 latt.grid[rows] = [];
                 for(var cols = 0; cols <= latt.gridCols; cols++){
-                    
-                    //Cache the reference to the cell's element
+
+                    // Cache the reference to the cell's element
                     var $reference = $('[data-row=' + rows + '][data-col=' + 
                                 cols + ']'),
                         clearValue = ( cols == latt.gridCols ) ? 
                                 'right' : 'none';
 
-                    /*
-                     * If an element doesn't exist for this cell, we'll use the 
-                     * default empty placeholder
-                     */
-                   if($reference.length == 0){
+                    
+                    if($reference.length === 0){
 
+                        /**
+                         * If an element doesn't exist for this cell, we'll 
+                         * use the default empty placeholder
+                         */
                         setCellProperties(rows, cols, false);
                         addThumbnailToMap({
                                 'background':'none'
                             }, latt.html.thumbnailEmpty, clearValue, rows, 
                                     cols);
-                        
-                        continue;
-                    }
+                    } else {
 
-                    //This element does exist. We'll create the thumbnail.
-                    addThumbnailToMap({
-                            'background-color': '#A7A1A1'
-                        }, latt.html.thumbnailDefault, clearValue, rows, cols);
+                        /**
+                         * This element does exist. We'll create the thumbnail, 
+                         * set the cell properties in our global, and add some 
+                         * positioning for the actual element.
+                         */
+                        addThumbnailToMap({
+                                'background-color': '#A7A1A1'
+                            }, latt.html.thumbnailDefault, clearValue, rows, 
+                                cols);
 
-                    setCellProperties(rows, cols, {
-                        element: $reference,
-                        html: $('<div>').append($reference.clone()).html(),
-                        row: parseInt($reference.data('row')),
-                        col: parseInt($reference.data('col')),
-                        travel: $reference.data('travel'),
-                        visited: false,
-                        north: false,
-                        south: false,
-                        east: false,
-                        west: false,
-                        adjacents: {}
-                    });
+                        setCellProperties(rows, cols, {
+                            element: $reference,
+                            html: $('<div>').append($reference.clone()).html(),
+                            row: parseInt($reference.data('row')),
+                            col: parseInt($reference.data('col')),
+                            travel: $reference.data('travel'),
+                            visited: false,
+                            north: false,
+                            south: false,
+                            east: false,
+                            west: false,
+                            adjacents: {}
+                        });
 
-                    /*
-                     * Define available paths for that cell based on the travel 
-                     * data attribute
-                     */
-                    if (latt.grid[rows][cols].travel){
+                        $reference.css({
+                            'left' : (cols * latt.sliderWidth) + 'px',
+                            'top' : (rows * latt.sliderHeight) + 'px'
+                        });
+                    }          
+
+                    
+                    if (latt.grid[rows][cols] && latt.grid[rows][cols].travel){
+
+                        /**
+                         * Define available paths for that cell based on the 
+                         * travel data attribute
+                         */
                         $.each(latt.grid[rows][cols].travel.split(','), 
                                 function(index, value){
                                     latt.grid[rows][cols][value] = true;
@@ -634,31 +649,32 @@
                                 }
                         );
 
-                        continue;
-                    }
+                    } else { 
 
-                    //No path data attribute? Go by adjacency
-                    for( var direction in latt.compassDict ){
-                        if (latt.compassDict.hasOwnProperty(direction)){
-                            //TODO: Find a faster way of doing this
-                            var adjacentCellSelector = 
-                                '[data-row=' + ( rows + 
-                                        latt.compassDict[direction].offsetR ) 
-                                + '][data-col=' + (cols + 
-                                        latt.compassDict[direction].offsetC) + 
-                                        ']',
-                                travelProp = {};
+                        //No path data attribute? Go by adjacency
+                        for( var direction in latt.compassDict ){
+                            if (latt.compassDict.hasOwnProperty(direction)){
+                                //TODO: Find a faster way of doing this
+                                var adjacentCellSelector = 
+                                    '[data-row=' + (rows + 
+                                    latt.compassDict[direction].offsetR) + 
+                                    '][data-col=' + (cols + 
+                                    latt.compassDict[direction].offsetC) + 
+                                    ']',
+                                    travelProp = {};
 
-                            if( $(adjacentCellSelector).length != 0  ) {
-                                travelProp[direction] = true;
-                                setCellProperties(rows, cols, travelProp );
-                                addAdjacentLink($reference, direction);
-                            } else {
-                                travelProp[direction] = false;
-                                setCellProperties(rows, cols, travelProp );
+                                if( $(adjacentCellSelector).length != 0  ) {
+                                    travelProp[direction] = true;
+                                    setCellProperties(rows, cols, travelProp );
+                                    addAdjacentLink($reference, direction);
+                                } else {
+                                    travelProp[direction] = false;
+                                    setCellProperties(rows, cols, travelProp );
+                                }
+                                
                             }
-                            
                         }
+
                     }
 
                 } //end col loop

@@ -12,8 +12,8 @@ p{
 }
 
 #plugin-example-1 .slide{
-	width: 100%;
-	height: 100%;
+	width: 500px;
+	height: 400px;
 }
 
 #plugin-example-1 .slide h2{
@@ -55,12 +55,3 @@ p{
 	transition:background-color 2s;
 	-webkit-transition:background-color 2s;
 }
-
-.slide-ff {
-	width: 400px !important;
-	height: 400px !important;
-	display: inline-block;
-	float: left;
-	clear: both;
-}
-

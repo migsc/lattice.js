@@ -4,7 +4,8 @@
 		<link rel="stylesheet" href="css/bootstrap.min.css"/>
 		<link rel="stylesheet" href="css/bootstrap-responsive.min.css"/>
 		<link rel="stylesheet" href="css/main.css"/>
-    	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>
+    	<!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>-->
+    	<script src="jquery.min.js"></script>
     	<script src="lattice.jquery.js"></script>
     	<!--<script src="lattice.jquery.min.js"></script>-->
     	<!--<script src="html2canvas.js"></script>-->
@@ -12,34 +13,6 @@
 	<body>
 		<div id="plugin-example-1">
 			<div id="container">
-
-				<div id="gunslinger-1" class="slide slide-yellow slide-ff" data-row="0" data-col="2">
-					<div class="text-container">
-						<h2>One</h2>
-						<p>The man in black fled across the desert, and the gunslinger followed.</p>
-					</div>
-					<a href="#" class="next">NEXT</a>
-				</div>
-
-				<div id="gunslinger-2" class="slide slide-green slide-ff" data-row="1" data-col="2">
-					<div class="text-container">
-						<h2>Two</h2>
-						<p>The desert was the apotheosis of all deserts, huge, standing to the sky for what looked like eternity in all directions.</p>
-					</div>
-					<a href="#" class="next">NEXT</a>
-					<a href="#" class="previous">PREVIOUS</a>
-				</div>
-
-				<div id="gunslinger-3" class="slide slide-blue slide-ff" data-row="1" data-col="3">
-					<div class="text-container">
-						<h2>Three</h2>
-						<p>It was white and blinding and waterless and without feature save for the faint, cloudy haze of the mountains which sketched themselves on the horizon and the devil-grass which brought sweet dreams, nightmares, death.</p>
-					</div>
-					<a href="#" class="previous">PREVIOUS</a>
-				</div>
-
-			</div>
-			<!-- <div id="container">
 
 				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2">
 					<div class="text-container">
@@ -187,20 +160,20 @@
 						<p>His shirt, the no-color of rain or dust, was open at the throat, with a rawhide thong dangling loosely in hand-punched eyelets. His hat was gone. So was the horn he had once carried; gone for years, that horn, spilled from the hand of a dying friend, and he missed them both.</p>
 					</div>
 				</div>
- 
+
 				<div id="gunslinger-22" class="slide slide-red" data-row="4" data-col="3">
 					<div class="text-container">
 						<h2>Twenty Two</h2>
 						<p>He breasted a gently rising dune (although there was no sand here; the desert was hardpan, and even the harsh winds that blew when dark came raised only an aggravating harsh dust like scouring powder) and saw the kicked remains of a tiny campfire on the lee side, the side the sun would quit earliest.</p>
 					</div>
 				</div>
-			</div> -->
+			</div><!-- END #container -->
 		</div>
 		<!-- <div style="width:200px;height:200px;background-color:whitesmoke;border:solid 1px lightgray;"><h1>hello</h1></div>-->
 		<!-- <div class="canvas-test"></div> -->
 		<script>
 			jQuery(document).ready(function(){
-				/*$("#container").lattice({
+				$("#container").lattice({
 					startSelector: ".slide-1",
 					transition: "slide",
 					speed : 1500,
@@ -211,7 +184,7 @@
             		thumbnailHeight: 15,
             		debug: true,
 				});
-				$("#container").children().each(function(){
+				/*$("#container").children().each(function(){
 					console.log("#" + $(this).attr('id'));
 					html2canvas($("#" + $(this).attr('id')), {
                         onrendered: function(canvas) {
@@ -221,65 +194,14 @@
                         }
                     });
 
-				});
-*/
-			});
-			$(window).load (function() {
-				var theSlide = $('#container .slide-ff');
-				var theWidth = theSlide.width()
-				var theHeight = theSlide.height();
-				//wrap into mother div
-				$('#container').wrap('<div id="mother" />');					
-				//assign height width and overflow hidden to mother
-				$('#mother').css({
-					width: function() {
-					return theWidth;
-				  }, 
-					height: function() {
-					return theHeight;
-				  }, 
-					position: 'relative',
-					overflow: 'hidden'  	
-				});
-				//get total of image sizes and set as width for ul 
-				/*var totalWidth = theSlide.length * theWidth;
-				$('#container').css({
-					width: function(){
-					return totalWidth;	
-				}				
-				});
-				*/
-				var totalHeight = theSlide.length * theHeight;
-				$('#container').css({
-					height: function(){
-					return totalHeight;	
-				}				
-				});
-
-
-				$(theSlide).each(		
-					function(intIndex){	
-						console.log($(this));
-						$(this).find('.next').bind('click', function(){
-							$(this).parent('.slide-ff').parent('#container').animate({
-									//'margin-left': (-(intIndex + 1) * theWidth)	
-									'margin-top': (-(intIndex + 1) * theHeight)				
-							}, 1000);
-						});
-						$(this).find('.previous').bind('click', function(){
-							$(this).parent('.slide-ff').parent('#container').animate({
-									//"margin-left": (-(intIndex - 1) * theWidth)		
-									"margin-top": (-(intIndex - 1) * theHeight)				
-							}, 1000);
-						});								 
-				});//close .each()
+				});*/
 				
 			});//doc ready
 		</script>
 		<style type="text/css">
 			*{padding:0; margin:0;}
 			#container {}
-			#container .slide-ff {float:left; .slide-ffst-style:none; position:relative; }
+			#container .slide-ff {float:left; position:relative; }
 			#container .slide-ff a.next {position:absolute; left:100px; z-index: 999 !important;font-weight: bolder;}
 			#container .slide-ff a.previous{position:absolute; left:0px; z-index: 999 !important;font-weight: bolder;}
 			#container .slide-ff a.startover{position:absolute; left:200px; z-index: 999 !important;font-weight: bolder;}
