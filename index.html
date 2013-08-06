@@ -5,107 +5,121 @@
 		<link rel="stylesheet" href="css/bootstrap-responsive.min.css"/>
 		<link rel="stylesheet" href="css/main.css"/>
     	<!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>-->
-    	<script src="jquery.min.js"></script>
+    	<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
     	<script src="lattice.jquery.js"></script>
     	<!--<script src="lattice.jquery.min.js"></script>-->
-    	<!--<script src="html2canvas.js"></script>-->
+    	<script src="html2canvas.js"></script>
 	</head>  
 	<body>
+	<div id="wrapper">
+		<div class="page-header">
+		  <h1>lattice <small>A 2-dimensional anything slider jQuery plugin</small></h1>
+		</div>
 		<div id="plugin-example-1">
+
+			<div class="thumbs" style="display:none;">
+				<img src="img/rose-red.png" id="rose-red"/>
+				<img src="img/rose-green.png" id="rose-green"/>
+				<img src="img/rose-blue.png" id="rose-blue"/>
+				<img src="img/rose-yellow.png" id="rose-yellow"/>
+				<img src="img/rose-purple.png" id="rose-purple"/>
+				<img src="img/rose-orange.png" id="rose-orange"/>
+			</div>
+
 			<div id="container">
 
-				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2">
+				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self">
 					<div class="text-container">
 						<h2>One</h2>
 						<p>The man in black fled across the desert, and the gunslinger followed.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-2" class="slide slide-green" data-row="1" data-col="2">
+				<div id="gunslinger-2" class="slide slide-green" data-row="1" data-col="2" data-thumb="#rose-green">
 					<div class="text-container">
 						<h2>Two</h2>
 						<p>The desert was the apotheosis of all deserts, huge, standing to the sky for what looked like eternity in all directions.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-3" class="slide slide-blue" data-row="1" data-col="3">
+				<div id="gunslinger-3" class="slide slide-blue" data-row="1" data-col="3" data-thumb="self">
 					<div class="text-container">
 						<h2>Three</h2>
 						<p>It was white and blinding and waterless and without feature save for the faint, cloudy haze of the mountains which sketched themselves on the horizon and the devil-grass which brought sweet dreams, nightmares, death.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-4" class="slide slide-red" data-row="1" data-col="4">
+				<div id="gunslinger-4" class="slide slide-red" data-row="1" data-col="4" data-thumb="#rose-red">
 					<div class="text-container">
 						<h2>Four</h2>
 						<p>An occasional tombstone sign pointed the way, for once the drifted track that cut its way through the thick crust of alkali had been a highway. Coaches and buckas had followed it</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-5" class="slide slide-yellow" data-row="2" data-col="4">
+				<div id="gunslinger-5" class="slide slide-yellow" data-row="2" data-col="4" data-thumb="#rose-yellow">
 					<div class="text-container">
 						<h2>Five</h2>
 						<p>The world had moved on since then. The world had emptied.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-6" class="slide slide-green" data-row="3" data-col="4">
+				<div id="gunslinger-6" class="slide slide-green" data-row="3" data-col="4" data-thumb="self">
 					<div class="text-container">
 						<h2>Six</h2>
 						<p>There would be water if God willed it, the oldtimers said. Water if God willed it, even in the desert. The gunslinger stood up, brushing his hands.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-7" class="slide slide-purple" data-row="3" data-col="3">
+				<div id="gunslinger-7" class="slide slide-purple" data-row="3" data-col="3" data-thumb="#rose-purple">
 					<div class="text-container">
 						<h2>Seven</h2>
 						<p>The gunslinger had been struck by a momentary dizziness, a kind of yawing sensation that made the entire world seem ephemeral, almost a thing that could be looked through.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-8" class="slide slide-orange" data-row="3" data-col="2">
+				<div id="gunslinger-8" class="slide slide-orange" data-row="3" data-col="2" data-thumb="#rose-orange">
 					<div class="text-container">
 						<h2>Eight</h2>
 						<p>He laid the flint down the steel rod and struck his spark to the dry, shredded grass, muttering the old and powerful nonsense words as he did: "Spark-a-dark, where's my sire? Will I lay me? Will I stay me? Bless this camp with fire."</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-9" class="slide slide-blue" data-row="2" data-col="2">
+				<div id="gunslinger-9" class="slide slide-blue" data-row="2" data-col="2" data-thumb="#rose-blue">
 					<div class="text-container">
 						<h2>Nine</h2>
 						<p>It passed and, like the world upon whose hide he walked, he moved on.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-10" class="slide slide-red" data-row="2" data-col="1">
+				<div id="gunslinger-10" class="slide slide-red" data-row="2" data-col="1" data-thumb="#rose-red">
 					<div class="text-container">
 						<h2>Ten</h2>
 						<p>He passed the miles stolidly, not hurrying, not loafing. A hide waterbag was slung around his middle like a bloated sausage. It was almost full.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-11" class="slide slide-green" data-row="2" data-col="0">
+				<div id="gunslinger-11" class="slide slide-green" data-row="2" data-col="0" data-thumb="self" data-thumb="#rose-green">
 					<div class="text-container">
 						<h2>Eleven</h2>
 						<p>He had progressed through the khef over many years, and had reached perhaps the fifth level.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-12" class="slide slide-purple" data-row="3" data-col="0" >
+				<div id="gunslinger-12" class="slide slide-purple" data-row="3" data-col="0"  data-thumb="#rose-purple">
 					<div class="text-container">
 						<h2>Twelve</h2>
 						<p>His shirt, the no-color of rain or dust, was open at the throat, with a rawhide thong dangling loosely in hand-punched eyelets. His hat was gone.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-13" class="slide slide-orange" data-row="4" data-col="0">
+				<div id="gunslinger-13" class="slide slide-orange" data-row="4" data-col="0" data-thumb="#rose-orange">
 					<div class="text-container">
 						<h2>Thirteen</h2>
 						<p>Had he been a Manni holy man, he might not have even been thirsty; he could have watched his own body dehydrate with clinical, detached attention, watering its crevices and dark inner hollows only when his logic told him it must be done.</p>
 					</div>
 				</div>
 
-				<div id="gunslinger-14" class="slide slide-yellow" data-row="4" data-col="1">
+				<div id="gunslinger-14" class="slide slide-yellow" data-row="4" data-col="1" data-thumb="#rose-yellow">
 					<div class="text-container">
 						<h2>Fourteen</h2>
 						<p>He was not a Manni, however, nor a follower of the Man Jesus, and considered himself in no way holy.</p>
@@ -126,7 +140,7 @@
 					</div>
 				</div>
 
-				<div id="gunslinger-17" class="slide slide-orange" data-row="6" data-col="2">
+				<div id="gunslinger-17" class="slide slide-orange" data-row="6" data-col="2" data-thumb="self">
 					<div class="text-container">
 						<h2>Seventeen</h2>
 						<p>Below the waterbag were his guns, carefully weighted to his hands; a plate had been added to each when they had come to him from his father, who had been lighter and not so tall.</p>
@@ -161,16 +175,15 @@
 					</div>
 				</div>
 
-				<div id="gunslinger-22" class="slide slide-red" data-row="4" data-col="3">
-					<div class="text-container">
-						<h2>Twenty Two</h2>
-						<p>He breasted a gently rising dune (although there was no sand here; the desert was hardpan, and even the harsh winds that blew when dark came raised only an aggravating harsh dust like scouring powder) and saw the kicked remains of a tiny campfire on the lee side, the side the sun would quit earliest.</p>
-					</div>
-				</div>
+				<img id="gunslinger-22" class="slide" data-row="4" data-col="3" data-thumb="self" src="img/roland-in-desert.png">
 			</div><!-- END #container -->
+			<h4>Grid thumbnails can be...</h4>
+			<ul>
+				<li>Dynamically generated via canvas (e.g. like the first slide you saw)</li>
+				<li>Specified images (e.g. all the roses)</li>
+				<li>An image if the slide itself is an image (e.g. the gunslinger in the desert)</li>
+			</ul>
 		</div>
-		<!-- <div style="width:200px;height:200px;background-color:whitesmoke;border:solid 1px lightgray;"><h1>hello</h1></div>-->
-		<!-- <div class="canvas-test"></div> -->
 		<script>
 			jQuery(document).ready(function(){
 				$("#container").lattice({
@@ -180,31 +193,12 @@
             		pause : 1000,
             		startSelector: "#gunslinger-1",
             		fullScreen: false,
-            		thumbnailWidth : 15,
-            		thumbnailHeight: 15,
+            		thumbnailWidth : 45,
+            		thumbnailHeight: 45,
             		debug: true,
 				});
-				/*$("#container").children().each(function(){
-					console.log("#" + $(this).attr('id'));
-					html2canvas($("#" + $(this).attr('id')), {
-                        onrendered: function(canvas) {
-                            var image = new Image();
-                            image.src = canvas.toDataURL("image/png");
-                            $('.canvas-test').append(image);
-                        }
-                    });
-
-				});*/
-				
 			});//doc ready
 		</script>
-		<style type="text/css">
-			*{padding:0; margin:0;}
-			#container {}
-			#container .slide-ff {float:left; position:relative; }
-			#container .slide-ff a.next {position:absolute; left:100px; z-index: 999 !important;font-weight: bolder;}
-			#container .slide-ff a.previous{position:absolute; left:0px; z-index: 999 !important;font-weight: bolder;}
-			#container .slide-ff a.startover{position:absolute; left:200px; z-index: 999 !important;font-weight: bolder;}
-		</style>
+		</div>
 	</body>
 </html>

@@ -19,8 +19,6 @@
                 var selector = '#lattice-thumbnail-map ' + 
                         '.lattice-grid-link#L' + row + '-' + col +
                          ' .lattice-thumbnail';
-                lattlog('GOOBERS:');
-                lattlog($(selector));
                 $(selector).toggleClass(latt.thumbnailActiveClass);
             }
 
@@ -34,6 +32,7 @@
             }
 
             var showAdjacentLinks = function(){
+                return;
                 $('.lattice-adjacent-link').show(latt.adjacentLinkShowDuration);
             }
 
@@ -174,7 +173,6 @@
                 lattlog('Starting solver.');
                 
                 var cacheIndex =  start.cellName + '_' + end.cellName;
-                lattlog('BIG DICKS: ' + start.cellName + '_' + end.cellName);
                 lattlog(start.cellName);
 
                 lattlog('Checking cache.');
@@ -340,34 +338,6 @@
                 });
             }
 
-            //TODO: Figure out how to make this work
-            var createDynamicThumbnail = function($reference, rows, cols, thumbnail){
-                var idSelector = '#' + $reference.attr('id');
-                    html2canvas($(idSelector), {
-                        onrendered: function(canvas, rows, cols) {
-                            var image = new Image();
-                            image.src = canvas.toDataURL('image/png');
-                            image.style = 'width:100%;height:100%;';
-
-                            $(thumbnail).append(image)
-                                        .appendTo('#lattice-thumbnail-map')
-                                        .css({
-                                            'clear': clearValue,
-                                            'display': 'block',
-                                            'float': 'left',
-                                            'width': latt.thumbnailWidth + 
-                                                     'px',
-                                            'height': latt.thumbnailHeight + 
-                                                      'px',
-                                            'margin': latt.thumbnailSpacing + 
-                                                      'px'
-                                        })
-
-                            wrapThumbnailInAnchor(thumbnail ,$reference);
-                        }
-                    });
-            }
-
             var addThumbnailToMap = function(customCss, thumbnail, clearValue, row, 
                     col){
                 
@@ -441,6 +411,7 @@
             thumbnailMapHideDuration: 200,
             thumbnailMapShowDuration: 700,
             usePathCaching: false,
+            selfThumbedCells: [],
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
@@ -448,10 +419,10 @@
                                     'style="position:relative;' + 
                                     'overflow:hidden;"></div>',
                 thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
-                thumbnailEmpty:     '<div class"lattice-thumbnail empty">' + 
+                thumbnailEmpty:     '<div class="lattice-thumbnail-empty">' + 
                                     '</div>',
                 thumbnailMap:       '<div id="lattice-thumbnail-map" ' + 
-                                    'style="opacity:0.4;position:absolute;' + 
+                                    'style="position:absolute;' + 
                                     'bottom:15px;right:15px"></div>',
                 northArrow:         '<div style="left:50%;top:15px;' + 
                                     'position:absolute;opacity:0.4;width:0;' + 
@@ -484,9 +455,9 @@
             sliderWidth: 500,
             sliderHeight: 400,
             fullScreen: false,
-            dynamicThumbnails: true,
             //Runtime data
             grid: [],
+            gridImage: null,
             currentPath: [],
             active:{
                 row: null,
@@ -593,7 +564,8 @@
                     var $reference = $('[data-row=' + rows + '][data-col=' + 
                                 cols + ']'),
                         clearValue = ( cols == latt.gridCols ) ? 
-                                'right' : 'none';
+                                'right' : 'none',
+                        selfThumbed = false;
 
                     
                     if($reference.length === 0){
@@ -614,11 +586,52 @@
                          * set the cell properties in our global, and add some 
                          * positioning for the actual element.
                          */
-                        addThumbnailToMap({
+                        var thumbData = $reference.data('thumb');
+                        if(thumbData === 'self' && $reference.is('img') ){
+
+                            //The element itself is an image and will be thumbed
+                            var thumb = $('<img class="lattice-thumbnail">');
+                            thumb.attr('src', $reference.attr('src'));
+
+                            addThumbnailToMap({}, thumb, clearValue, rows, cols); 
+
+                        } else if(thumbData === 'self') {
+
+                            //NOT an image so it will be thumbed into a canvas
+                            addThumbnailToMap({
+                                'background-repeat' : 'no-repeat',
+                                'background-size' : 
+                                    ((latt.gridCols+1) * latt.thumbnailWidth ) +
+                                     'px ' + 
+                                    ((latt.gridRows+1) * latt.thumbnailHeight) + 
+                                    'px',
+                                'background-position' : 
+                                    ( - cols * latt.thumbnailWidth )+ 'px ' + 
+                                    ( - rows * latt.thumbnailHeight) + 'px',
+                                'background-color': '#A7A1A1'
+                            }, latt.html.thumbnailDefault, clearValue, rows, 
+                                    cols);
+                            selfThumbed= true;
+
+                        } else if (thumbData) {
+                            
+                            //Some selector for an image in the thumb-data attr   
+                            //TODO: Make this happen
+                            addThumbnailToMap({}, 
+                                $('<div>').append(
+                                    $(thumbData).addClass('lattice-thumbnail')
+                                                .clone()
+                                        ).html(), 
+                                clearValue, rows, cols);                            
+                        } else {
+
+                            //No thumb-data attr so use the default thumb
+                            addThumbnailToMap({
                                 'background-color': '#A7A1A1'
                             }, latt.html.thumbnailDefault, clearValue, rows, 
                                 cols);
-
+                        }
+                        
                         var cellRow = parseInt($reference.data('row')),
                             cellCol = parseInt($reference.data('col'));
 
@@ -637,10 +650,16 @@
                             adjacents: {}
                         });
 
+                        if(selfThumbed){
+                            latt.selfThumbedCells.push(latt.grid[rows][cols]);
+                        }
+
                         $reference.css({
                             'left' : (cols * latt.sliderWidth) + 'px',
                             'top' : (rows * latt.sliderHeight) + 'px'
                         });
+
+
                     }          
 
                     
@@ -688,6 +707,62 @@
                 } //end col loop
             }//end row loop
 
+            //Set the active slide
+            var $active = $this.find(latt.startSelector);
+            $active.toggleClass('active');
+
+            latt.active.row = parseInt($active.data('row'));
+            latt.active.col = parseInt($active.data('col'));
+
+            if($('[data-thumb=self]').length > 0){
+                html2canvas($("#container"), {
+                        useOverflow: true,
+                        onpreloaded: function(){
+                            $("#lattice-wrap").css('overflow','visible');
+                            $this.css({
+                                'margin-top' : '0px',
+                                'margin-left' : '0px',
+                            });
+                        },
+                        onrendered: function(canvas, rows, cols) {
+                            var style = $('<style>.lattice-thumbnail-self {' +
+                                            ' background-image: url(' + 
+                                            canvas.toDataURL('image/gif') + 
+                                            '); }</style>');
+                            $('html > head').append(style);
+
+                            $("#lattice-wrap").css('overflow','hidden');
+                            latt.gridImage = canvas.toDataURL('image/gif');
+                                                        
+                            $this.css({
+                                'margin-top' : - ( latt.active.row * 
+                                    latt.sliderHeight ) + 'px',
+                                'margin-left' : - ( latt.active.col * 
+                                    latt.sliderWidth ) + 'px',
+                            });
+                            for(var i=0; i<latt.selfThumbedCells.length;i++){
+                                var cell = latt.selfThumbedCells[i];
+                                var selector = '#L' + 
+                                                cell.row + '-' + cell.col + 
+                                                ' .lattice-thumbnail';
+                                $(selector).addClass('lattice-thumbnail-self');
+                            }
+                        }
+                });
+            }
+
+            $this.css({
+                'margin-top' : - ( latt.active.row * latt.sliderHeight ) + 'px',
+                'margin-left' : - ( latt.active.col * latt.sliderWidth ) + 'px',
+            });
+
+            updateActiveThumbnail(latt.active.row, latt.active.col);
+
+            hideThumbnailMap();
+            hideAdjacentLinks();
+
+            
+
             //Some more setup for the grid, now that all the cells are defined
             for(var rows = 0; rows <= latt.gridRows; rows++){
                 for(var cols = 0; cols <= latt.gridCols; cols++){
@@ -709,22 +784,7 @@
 
             lattlog(latt);
 
-            //Set the active slide
-            var $active = $this.find(latt.startSelector);
-            $active.toggleClass('active');
-
-            latt.active.row = parseInt($active.data('row'));
-            latt.active.col = parseInt($active.data('col'));
-            $this.css({
-                'margin-top' : - ( latt.active.row * latt.sliderHeight ) + 'px',
-                'margin-left' : - ( latt.active.col * latt.sliderWidth ) + 'px',
-            });
-
-            updateActiveThumbnail(latt.active.row, latt.active.col);
-
-            $('.' + latt.containerClass + ' .active').show();
-            hideThumbnailMap();
-            hideAdjacentLinks();
+            
 
             /******************************
             * EVENTS
@@ -798,8 +858,6 @@
                 latt.grid[latt.active.row + rOffset][latt.active.col + cOffset].directionTaken = direction;
                 path[0].directionTaken = direction;
                 path.push(latt.grid[latt.active.row + rOffset][latt.active.col +  cOffset]);
-                    
-                
 
                 lattlog(path);
 
@@ -810,8 +868,11 @@
 
             $('.lattice-grid-link').click(function(e){
                 e.preventDefault();
-                if(latt.inMotion) return;
-                else latt.inMotion = true;
+                if(latt.inMotion ){
+                    return;
+                } else {
+                    latt.inMotion = true;
+                } 
 
                 var coords = $(this)[0].id.replace('L', '').split('-');
 
