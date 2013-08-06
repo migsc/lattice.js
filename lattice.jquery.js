@@ -727,12 +727,12 @@
                         onrendered: function(canvas, rows, cols) {
                             var style = $('<style>.lattice-thumbnail-self {' +
                                             ' background-image: url(' + 
-                                            canvas.toDataURL('image/gif') + 
+                                            canvas.toDataURL('image/png') + 
                                             '); }</style>');
                             $('html > head').append(style);
 
                             $("#lattice-wrap").css('overflow','hidden');
-                            latt.gridImage = canvas.toDataURL('image/gif');
+                            latt.gridImage = canvas.toDataURL('image/png');
                                                         
                             $this.css({
                                 'margin-top' : - ( latt.active.row * 
