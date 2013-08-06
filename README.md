@@ -1,7 +1,7 @@
 lattice
 =======
 
-A jQuery plugin that creates 2-dimensional HTML grid slider from cell elements in a container.
+A jQuery plugin that creates a 2-dimensional HTML grid slider from cell elements in a container.
 
 #Demos
 
@@ -27,7 +27,7 @@ This is what I plan to implement before v1.0
 - [ ] Build awesome examples, both 2D and 3D versions, of the following: (1)A collection of cue card like HTML elements, and (2) an image gallery, and (3) a simple sample personal website.
 - [ ] Ability to create thumbnails from sprited image.
 
-_**[1]** Using [html2canvas](https://github.com/niklasvh/html2canvas) is difficult. A canvas can only be created from visible elements (i.e. display not set to 'none' or visibility not set to 'hidden'). My crude attempt to programmatically display each cell element and then capture it with html2canvas failed. Either I'm doing something wrong or there's no way to gaurantee that I can capture a visible element after using $.css(). I choose to believe the former and continue trying at this. Not out of ideas yet!_
+_**[1]** ~~Using [html2canvas](https://github.com/niklasvh/html2canvas) is difficult. A canvas can only be created from visible elements (i.e. display not set to 'none' or visibility not set to 'hidden'). My crude attempt to programmatically display each cell element and then capture it with html2canvas failed. Either I'm doing something wrong or there's no way to gaurantee that I can capture a visible element after using $.css(). I choose to believe the former and continue trying at this. Not out of ideas yet!~~ Awe yeah, I did it!_
 
 _**[2]** Currently considering [this pattern](http://stackoverflow.com/questions/1117086/how-to-create-a-jquery-plugin-with-methods#answer-1117129). Some current candidates are activateFullscreen, slideOn, hideThumbnailMap, showThumbnailMap, and more._
 
