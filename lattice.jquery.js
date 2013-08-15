@@ -6,6 +6,9 @@
  * Licensed under the MIT license
  */
 
+//TODO
+//data-anchor="topleft|topcenter|topright|centerleft|center|centerright|botttomleft|bottomcenter|bottomright"
+
 ;(function($, window, document, undefined) {
 
     $.fn.lattice = function(config) {
@@ -54,6 +57,8 @@
                         pause = latt.speed;
                     var isAdjacentToDestination = ( index == path.length - 2 );
 
+                    updateActiveThumbnail( path[index+1].row, 
+                                path[index+1].col);
                     slideTo( path[index], path[index+1], false, 
                             isAdjacentToDestination);
                     index++;
@@ -133,7 +138,7 @@
                 var animOptions = {};
                 animOptions[animCss.prop] = animCss.val;
 
-                $current.parent('#container').animate(
+                $('.lattice-container').animate(
                     animOptions, latt.speed, easing, function(){
                                                     if(isAdjacentToDestination){
                                                         showAdjacentLinks();
@@ -557,7 +562,9 @@
              * available paths along the way
              */
             for(var rows = 0; rows <= latt.gridRows; rows++){
+                
                 latt.grid[rows] = [];
+
                 for(var cols = 0; cols <= latt.gridCols; cols++){
 
                     // Cache the reference to the cell's element
@@ -579,11 +586,12 @@
                                 'background':'none'
                             }, latt.html.thumbnailEmpty, clearValue, rows, 
                                     cols);
+
                     } else {
 
                         /**
                          * This element does exist. We'll create the thumbnail, 
-                         * set the cell properties in our global, and add some 
+                         * set the cell properties in our glo/bal, and add some 
                          * positioning for the actual element.
                          */
                         var thumbData = $reference.data('thumb');
@@ -654,10 +662,28 @@
                             latt.selfThumbedCells.push(latt.grid[rows][cols]);
                         }
 
-                        $reference.css({
-                            'left' : (cols * latt.sliderWidth) + 'px',
-                            'top' : (rows * latt.sliderHeight) + 'px'
-                        });
+
+                        var cellStyling = 
+                                'width:' + latt.sliderWidth + 'px;' +
+                                'height:' + latt.sliderHeight + 'px;' +
+                                'position:absolute;' + 
+                                'left:' + latt.sliderWidth * cols + 'px;' +
+                                'top:' + latt.sliderHeight * rows + 'px;',
+                            innerCellStyling = 
+                                'position:relative;' + 
+                                'overflow:hidden;' + 
+                                'height:100%;' + 
+                                'width:100%;' +
+                                'margin:0'; 
+
+                        $reference.wrap(
+                            '<div id="cell' + rows + '-' + cols +
+                                '" class="lattice-cell" style="' + cellStyling
+                                + '">' + 
+                                    '<div class="lattice-cell-inner"' + 
+                                    ' style="'+ innerCellStyling + '">' + 
+                                    '</div>' + 
+                             '</div>');
 
 
                     }          
@@ -705,6 +731,7 @@
                     }
 
                 } //end col loop
+
             }//end row loop
 
             //Set the active slide
@@ -760,8 +787,6 @@
 
             hideThumbnailMap();
             hideAdjacentLinks();
-
-            
 
             //Some more setup for the grid, now that all the cells are defined
             for(var rows = 0; rows <= latt.gridRows; rows++){
