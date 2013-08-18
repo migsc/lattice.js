@@ -628,7 +628,7 @@
 
                         /**
                          * This element does exist. We'll create the thumbnail, 
-                         * set the cell properties in our glo/bal, and add some 
+                         * set the cell properties in our global, and add some 
                          * positioning for the actual element.
                          */
                         var thumbData = $reference.data('thumb');
@@ -658,7 +658,7 @@
                                     cols);
                             selfThumbed= true;
 
-                        } else if (thumbData) {
+                        } else if (thumbData && thumbData !== 'self') {
                             
                             //Some selector for an image in the thumb-data attr   
                             //TODO: Make this happen
