@@ -12,8 +12,9 @@ p{
 }
 
 #plugin-example-1 .slide{
-	width: 500px;
-	height: 400px;
+	-webkit-box-shadow: 2px 2px 7px rgba(50, 50, 50, 0.61);
+	-moz-box-shadow:    2px 2px 7px rgba(50, 50, 50, 0.61);
+	box-shadow:         2px 2px 7px rgba(50, 50, 50, 0.61);
 }
 
 #plugin-example-1 .slide h2{
@@ -55,14 +56,14 @@ p{
 	background-color: rgb(252, 108, 108) !important;
 	transition:background-color 2s;
 	-webkit-transition:background-color 2s;
-	opacity: 0.7 !important;
+	opacity: 1.0 !important;
 }
 
 .lattice-thumbnail{
 /*	-webkit-box-shadow: 1px 1px 4px rgba(50, 50, 50, 0.82);
 	-moz-box-shadow:    1px 1px 4px rgba(50, 50, 50, 0.82);
 	box-shadow:         1px 1px 4px rgba(50, 50, 50, 0.82);*/
-	opacity: 0.2;
+	opacity: 0.7;
 }
 #wrapper{
 	width: 80%;
@@ -71,6 +72,42 @@ p{
 }
 
 #lattice-wrap{
-	background: #CCCCCC;
+	background: url('../img/bg-diamond-gray.png');
+	border: 1px solid rgb(73, 4, 105);
+}
+
+#gunslinger-1{
+	height: 450px;
+	width: 400px;
+}
+
+#gunslinger-2{
+	width: 330px;
+	height: 490px;
+}
+
+#gunslinger-3{
+	width: 200px;
+	height: 316px;
+}
+
+#gunslinger-4{
+	width: 400px;
+	height: 400px;
+}
+
+#gunslinger-5{
+	width: 300px;
+	height: 300px;
+}
+
+#gunslinger-5{
+	width: 370px;
+	height: 260px;
+}
+
+#gunslinger-22{
+	width: 400px;
+	height: 300px;
 }
 

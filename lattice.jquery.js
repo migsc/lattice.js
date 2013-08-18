@@ -8,6 +8,7 @@
 
 //TODO
 //data-anchor="topleft|topcenter|topright|centerleft|center|centerright|botttomleft|bottomcenter|bottomright"
+//C27
 
 ;(function($, window, document, undefined) {
 
@@ -118,8 +119,7 @@
             }
             
             //TODO: Refactor this
-            var slideTo = function (fromNode, toNode, prevNode, 
-                    isAdjacentToDestination){
+            var slideTo = function (fromNode, toNode, prevNode, isAdjacentToDestination){
 
                 var $current = fromNode.element,
                     $target = toNode.element,
@@ -163,6 +163,31 @@
                 }
 
                 return arr;
+            }
+
+            var parseStyle = function(value){
+                if(typeof value !== 'string'){
+                    return false;
+                }
+                
+                if(value.indexOf('px') > -1){
+                    return {
+                        number: parseInt(value.replace('px', '')), 
+                        type: 'px',
+                    };
+                }
+
+                if(value.indexOf('%') > -1){
+                    return {
+                        number: parseInt(value.replace('%', '')), 
+                        type: '%',
+                    };
+                }
+
+                return {
+                    number: 0, 
+                    type: '',
+                };
             }
 
             var getMaxData = function($parent, name){
@@ -343,8 +368,7 @@
                 });
             }
 
-            var addThumbnailToMap = function(customCss, thumbnail, clearValue, row, 
-                    col){
+            var addThumbnailToMap = function(customCss, thumbnail, clearValue, row, col){
                 
                 if(row === null  || col === null) return;
 
@@ -417,6 +441,8 @@
             thumbnailMapShowDuration: 700,
             usePathCaching: false,
             selfThumbedCells: [],
+            gutter: '1%',
+            html2Canvas: false,
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
@@ -457,8 +483,10 @@
                                     '20px solid transparent; border-right:' + 
                                     '20px solid rgb(167, 161, 161); "></div>',
             },
-            sliderWidth: 500,
-            sliderHeight: 400,
+            sliderWidth: null,
+            sliderHeight: null,
+            innerWidth: null,
+            innerHeight: null,
             fullScreen: false,
             //Runtime data
             grid: [],
@@ -515,14 +543,34 @@
 
             latt.containerContext = $this.context;
 
+            $this.children().css({
+                'list-style' : 'none',
+                'position': 'absolute',
+                'display': 'block',
+                'top' : '0',
+                'bottom' : '0',
+                'left' : '0',
+                'right' : '0',
+                'margin' : 'auto'
+            });
+
+
+            /*
+             * Determine max width and height of cells first. If a fixed 
+             * slideWidth and height is set, then then' we'll skip this.
+             */
+            if(latt.fullScreen) {
+                activateFullScreen(this);
+            }
+
             /*
              * Wrap 'this' in a div with a class and set some styles. Adjusting 
              * the 'left' css values, so need to set positioning.
              */
             $this.css({
                 'position' : 'relative',
-                'width' : (latt.gridCols + 1) * latt.sliderWidth + 'px',
-                'height' : (latt.gridRows + 1) * latt.sliderHeight + 'px'
+                'width' : (latt.gridCols + 1) * 100 + '%',
+                'height' : (latt.gridRows + 1) * 100 + '%'
             }).addClass(latt.containerClass).wrap(latt.html.wrapper);
 
             $('#lattice-wrap').css({
@@ -530,21 +578,9 @@
                 'height': latt.sliderHeight + 'px'
             });
 
-            $this.children().css({
-                'list-style' : 'none',
-                'position': 'absolute',
-                'width' : latt.sliderWidth + 'px',
-                'height' : latt.sliderHeight + 'px',
-                'display': 'block'
-            });
-
-            if(latt.fullScreen) {
-                activateFullScreen(this);
-            }
-
-            
             if(latt.thumbnailMapEnabled){
                 //Add the thumbnail map
+                lattlog($('#lattice-wrap').length);
                 $(latt.html.thumbnailMap).appendTo('#lattice-wrap')
                     .width(function(){
                         return ( latt.thumbnailWidth + 
@@ -555,7 +591,9 @@
                                 ( 2 * latt.thumbnailSpacing ) ) 
                                 * (latt.gridRows + 1);
                     });
+                lattlog($('#lattice-wrap #lattice-thumbnail-map'));
             }
+            
 
             /*
              * Build the grid array while creating thumbnails and setting 
@@ -568,13 +606,12 @@
                 for(var cols = 0; cols <= latt.gridCols; cols++){
 
                     // Cache the reference to the cell's element
-                    var $reference = $('[data-row=' + rows + '][data-col=' + 
+                    var $reference = $this.find('[data-row=' + rows + '][data-col=' + 
                                 cols + ']'),
                         clearValue = ( cols == latt.gridCols ) ? 
                                 'right' : 'none',
                         selfThumbed = false;
 
-                    
                     if($reference.length === 0){
 
                         /**
@@ -603,7 +640,7 @@
 
                             addThumbnailToMap({}, thumb, clearValue, rows, cols); 
 
-                        } else if(thumbData === 'self') {
+                        } else if(thumbData === 'self' && latt.html2Canvas) {
 
                             //NOT an image so it will be thumbed into a canvas
                             addThumbnailToMap({
@@ -683,11 +720,10 @@
                                     '<div class="lattice-cell-inner"' + 
                                     ' style="'+ innerCellStyling + '">' + 
                                     '</div>' + 
-                             '</div>');
+                             '</div>'
+                        );
 
-
-                    }          
-
+                    }
                     
                     if (latt.grid[rows][cols] && latt.grid[rows][cols].travel){
 
@@ -734,6 +770,29 @@
 
             }//end row loop
 
+            showThumbnailMap();
+
+            latt.gutter = parseStyle(latt.gutter);
+            if(latt.gutter.type === 'px'){
+
+                var hGutter = (latt.gutter.number/latt.sliderWidth) * 100,
+                    vGutter = (latt.gutter.number/latt.sliderHeight) *  100;
+                
+                $('.lattice-cell-inner').css({
+                    'margin' : vGutter + '% ' + hGutter + '% ' + 
+                                vGutter + '% ' + hGutter + '% ',
+                    'width' : 100 - 2(hGutter) + '%',
+                    'height' : 100 - 2(vGutter) + '%'
+                });
+            } else if(latt.gutter.type === '%'){
+                $('.lattice-cell-inner').css({
+                    'margin' : latt.gutter.number + '%',
+                    'width' : 100 - (2 * latt.gutter.number) + '%',
+                    'height' : 100 - (2 * latt.gutter.number) + '%'
+                });
+            }
+
+
             //Set the active slide
             var $active = $this.find(latt.startSelector);
             $active.toggleClass('active');
@@ -741,7 +800,7 @@
             latt.active.row = parseInt($active.data('row'));
             latt.active.col = parseInt($active.data('col'));
 
-            if($('[data-thumb=self]').length > 0){
+            if($('[data-thumb=self]').length > 0 && latt.html2Canvas){
                 html2canvas($("#container"), {
                         useOverflow: true,
                         onpreloaded: function(){
@@ -785,7 +844,7 @@
 
             updateActiveThumbnail(latt.active.row, latt.active.col);
 
-            hideThumbnailMap();
+            //hideThumbnailMap();
             hideAdjacentLinks();
 
             //Some more setup for the grid, now that all the cells are defined
