@@ -26,6 +26,9 @@
 
 			<div id="container">
 
+				<img id="gunslinger-0" data-row="0" data-col="1" src="img/craig.jpg" data-thumb="self" data-crop="bottom-right" />
+
+
 				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self">
 					<div class="text-container">
 						<h2>One</h2>
@@ -189,14 +192,15 @@
 					transition: "slide",
 					speed : 1500,
             		pause : 1000,
-            		startSelector: "#gunslinger-1",
+            		startSelector: "#gunslinger-0",
             		fullScreen: false,
             		thumbnailWidth : 45,
             		thumbnailHeight: 45,
             		debug: true,
             		sliderWidth: 700,
             		sliderHeight: 500,
-            		gutter: '3%'
+            		gutter: '3%',
+            		crop: 'top-right'
 				});
 			});//doc ready
 		</script>

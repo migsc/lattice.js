@@ -6,10 +6,6 @@
  * Licensed under the MIT license
  */
 
-//TODO
-//data-anchor="topleft|topcenter|topright|centerleft|center|centerright|botttomleft|bottomcenter|bottomright"
-//C27
-
 ;(function($, window, document, undefined) {
 
     $.fn.lattice = function(config) {
@@ -429,6 +425,7 @@
             debug: false,
             speed : 1000,
             pause : 3000,
+            crop: 'center',
             adjacentEasing: 'swing',
             nonAdjacentEasing: 'linear',
             thumbnailMapEnabled : true,
@@ -483,6 +480,13 @@
                                     '20px solid transparent; border-right:' + 
                                     '20px solid rgb(167, 161, 161); "></div>',
             },
+            styles : {
+                crops:              '.center{top:0;bottom:0;left:0;right:0;}' +
+                                    '.top-left{top:0;left:0;}' + 
+                                    '.top-right{top:0;right:0;}' + 
+                                    '.bottom-left{bottom:0;left:0;}' +
+                                    '.bottom-right{bottom:0;right:0;}'
+            },
             sliderWidth: null,
             sliderHeight: null,
             innerWidth: null,
@@ -523,6 +527,19 @@
             },
             pathCache: {}
         }, config);
+        
+        //Add some global stylings to the document
+        $('body').append(function(){
+            var block = '<style type="text/css">';
+            for(var section in latt.styles){
+                if(latt.styles.hasOwnProperty(section)){
+                    block += latt.styles[section];
+                }
+            }
+            block += '</style>';
+            return block;
+        });
+        
 
         /**
          * If the pause is less than speed, it'll cause a flicker. This will 
@@ -547,10 +564,6 @@
                 'list-style' : 'none',
                 'position': 'absolute',
                 'display': 'block',
-                'top' : '0',
-                'bottom' : '0',
-                'left' : '0',
-                'right' : '0',
                 'margin' : 'auto'
             });
 
@@ -676,6 +689,16 @@
                             }, latt.html.thumbnailDefault, clearValue, rows, 
                                 cols);
                         }
+
+                        //Set cropping for the element, which is really just 
+                        //positioning of the element within its parent with
+                        //a hidden overflow.
+                        var cropData = $reference.data('crop');
+                        if(!cropData){
+                            cropData = latt.crop;
+                        }
+
+                        $reference.addClass(cropData);
                         
                         var cellRow = parseInt($reference.data('row')),
                             cellCol = parseInt($reference.data('col'));
@@ -692,26 +715,28 @@
                             south: false,
                             east: false,
                             west: false,
-                            adjacents: {}
+                            adjacents: {},
+                            crop: cropData,
                         });
 
                         if(selfThumbed){
                             latt.selfThumbedCells.push(latt.grid[rows][cols]);
                         }
 
+                        //TODO: Scale options
 
                         var cellStyling = 
-                                'width:' + latt.sliderWidth + 'px;' +
-                                'height:' + latt.sliderHeight + 'px;' +
+                                'width:' + (1/(latt.gridCols+1))*100 + '%;' +
+                                'height:' + (1/(latt.gridRows+1))*100 + '%;' +
                                 'position:absolute;' + 
-                                'left:' + latt.sliderWidth * cols + 'px;' +
-                                'top:' + latt.sliderHeight * rows + 'px;',
+                                'left:' + (cols/(latt.gridCols+1))*100 + '%;' +
+                                'top:' + (rows/(latt.gridRows+1))*100 + '%;',
                             innerCellStyling = 
                                 'position:relative;' + 
                                 'overflow:hidden;' + 
                                 'height:100%;' + 
                                 'width:100%;' +
-                                'margin:0'; 
+                                'margin:0';
 
                         $reference.wrap(
                             '<div id="cell' + rows + '-' + cols +
@@ -770,8 +795,7 @@
 
             }//end row loop
 
-            showThumbnailMap();
-
+            //Now set the gutters for each cell. 
             latt.gutter = parseStyle(latt.gutter);
             if(latt.gutter.type === 'px'){
 
@@ -779,16 +803,17 @@
                     vGutter = (latt.gutter.number/latt.sliderHeight) *  100;
                 
                 $('.lattice-cell-inner').css({
-                    'margin' : vGutter + '% ' + hGutter + '% ' + 
-                                vGutter + '% ' + hGutter + '% ',
+                    'margin' : '0 auto',
                     'width' : 100 - 2(hGutter) + '%',
-                    'height' : 100 - 2(vGutter) + '%'
+                    'height' : 100 - 2(vGutter) + '%',
+                    'top' : vGutter + '% '
                 });
             } else if(latt.gutter.type === '%'){
                 $('.lattice-cell-inner').css({
-                    'margin' : latt.gutter.number + '%',
+                    'margin' : '0 auto',
                     'width' : 100 - (2 * latt.gutter.number) + '%',
-                    'height' : 100 - (2 * latt.gutter.number) + '%'
+                    'height' : 100 - (2 * latt.gutter.number) + '%',
+                    'top' : latt.gutter.number + '% '
                 });
             }
 
@@ -837,14 +862,15 @@
                 });
             }
 
+            //Move the container to the chosen slide to be the first active.
             $this.css({
-                'margin-top' : - ( latt.active.row * latt.sliderHeight ) + 'px',
-                'margin-left' : - ( latt.active.col * latt.sliderWidth ) + 'px',
+                'margin-top' : ((latt.active.row)*-100) + '%',
+                'margin-left' : ((latt.active.col)*-100) + '%',
             });
 
             updateActiveThumbnail(latt.active.row, latt.active.col);
 
-            //hideThumbnailMap();
+            hideThumbnailMap();
             hideAdjacentLinks();
 
             //Some more setup for the grid, now that all the cells are defined

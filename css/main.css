@@ -53,7 +53,7 @@ p{
 }
 
 .lattice-thumbnail-active{
-	background-color: rgb(252, 108, 108) !important;
+	/*background-color: rgb(252, 108, 108) !important;*/
 	transition:background-color 2s;
 	-webkit-transition:background-color 2s;
 	opacity: 1.0 !important;
@@ -77,8 +77,8 @@ p{
 }
 
 #gunslinger-1{
-	height: 450px;
-	width: 400px;
+	height: 1000px;
+	width: 450px;
 }
 
 #gunslinger-2{
