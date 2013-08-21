@@ -72,8 +72,9 @@ p{
 }
 
 #lattice-wrap{
-	background: url('../img/bg-diamond-gray.png');
-	border: 1px solid rgb(73, 4, 105);
+	background: url('../img/bg.jpg');
+	margin-left: auto;
+	margin-right: auto;
 }
 
 #gunslinger-1{
@@ -111,3 +112,6 @@ p{
 	height: 300px;
 }
 
+.well{
+	margin-top: 35px;
+}

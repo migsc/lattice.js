@@ -26,10 +26,10 @@
 
 			<div id="container">
 
-				<img id="gunslinger-0" data-row="0" data-col="1" src="img/craig.jpg" data-thumb="self" data-crop="bottom-right" />
+				<img id="gunslinger-0" data-row="0" data-col="1" src="img/craig.jpg" data-thumb="self" data-crop="bottom-left" />
 
 
-				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self">
+				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self" data-crop="top-center">
 					<div class="text-container">
 						<h2>One</h2>
 						<p>The man in black fled across the desert, and the gunslinger followed.</p>
@@ -178,29 +178,32 @@
 
 				<img id="gunslinger-22" class="slide" data-row="4" data-col="3" data-thumb="self" src="img/roland-in-desert.png">
 			</div><!-- END #container -->
-			<h4>Grid thumbnails can be...</h4>
-			<ul>
-				<li>Dynamically generated via canvas (e.g. like the first slide you saw)</li>
-				<li>Specified images (e.g. all the roses)</li>
-				<li>An image if the slide itself is an image (e.g. the gunslinger in the desert)</li>
-			</ul>
+			<div class="well">
+				<h4>Grid thumbnails can be...</h4>
+				<ul>
+					<li>Dynamically generated via canvas (e.g. like the first slide you saw)</li>
+					<li>Specified images (e.g. all the roses)</li>
+					<li>An image if the slide itself is an image (e.g. the gunslinger in the desert)</li>
+				</ul>
+			</div>
 		</div>
 		<script>
-			jQuery(document).ready(function(){
+			jQuery(window).load(function(){
 				$("#container").lattice({
 					startSelector: ".slide-1",
 					transition: "slide",
-					speed : 1500,
+					speed : 400,
             		pause : 1000,
             		startSelector: "#gunslinger-0",
             		fullScreen: false,
             		thumbnailWidth : 45,
             		thumbnailHeight: 45,
             		debug: true,
-            		sliderWidth: 700,
-            		sliderHeight: 500,
+            		sliderWidth: '100%',
+            		sliderHeight: 700,
             		gutter: '3%',
-            		crop: 'top-right'
+            		crop: 'middle-center',
+            		fullWindow: false
 				});
 			});//doc ready
 		</script>

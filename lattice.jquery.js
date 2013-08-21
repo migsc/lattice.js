@@ -22,6 +22,22 @@
                 $(selector).toggleClass(latt.thumbnailActiveClass);
             }
 
+            var getNatural = function($mainImage) {
+                var mainImage = $mainImage[0],
+                    d = {};
+
+                if (mainImage.naturalWidth === undefined) {
+                    var i = new Image();
+                    i.src = mainImage.src;
+                    d.oWidth = i.width;
+                    d.oHeight = i.height;
+                } else {
+                    d.oWidth = mainImage.naturalWidth;
+                    d.oHeight = mainImage.naturalHeight;
+                }
+                return d;
+            }
+
             var updateActivePanel = function(row, col){
                 latt.active.row =  row;
                 latt.active.col = col;
@@ -37,13 +53,59 @@
             }
 
             var hideThumbnailMap = function(){
-                if(latt.fullScreen) return;
+                if(latt.fullWindow) return;
                 $('#lattice-thumbnail-map').hide(latt.thumbnailMapHideDuration);
             }
 
             var showThumbnailMap = function (){
                 $('#lattice-thumbnail-map').show(latt.thumbnailMapShowDuration)
                                            .css('display','inline');
+            }
+
+            var mergeObjects = function(list){
+                var merged = {};
+                for(var i=0; i<list.length; i++){
+                    for(var prop in list[i]){
+                        if(list[i].hasOwnProperty(prop)){
+                            merged[prop] = list[i][prop];
+                        }
+                    }
+                }
+                return merged;
+            }
+
+            var cropPositionToStyle = function(position, dimensionLength){
+                if(latt.cropDict.hasOwnProperty(position)){
+                    if(typeof latt.cropDict[position] === 'function'){
+                        return latt.cropDict[position](dimensionLength);
+                    } else {
+                        return latt.cropDict[position];
+                    }
+                } else {
+                    return {};
+                }
+            }
+
+            var getCropStyles = function(cropOption, $reference){
+                var optionPair = cropOption.split('-'),
+                    width = $reference.width(),
+                    height = $reference.height();
+                
+                if( $reference.is('img') && ( width === 0 || height === 0 ) ) {
+                    var dimensions = getNatural($reference);
+                    width = dimensions.oWidth;
+                    height = dimensions.oHeight;
+                }
+
+                console.log(width + ' ' + height);
+
+                if(optionPair.length !== 2){
+                    return {};
+                }
+                return mergeObjects([
+                    cropPositionToStyle(optionPair[0], height), 
+                    cropPositionToStyle(optionPair[1], width)
+                ]);
             }
 
             var slideOn = function (path, usePause){
@@ -98,16 +160,16 @@
                 if(direction === 'north' || direction === 'south') {
                     translation.prop = 'margin-top';
                     if( direction === 'north'){
-                        translation.val = -(row - 1) * latt.sliderHeight;
+                        translation.val = -((row - 1) * $('#lattice-wrap').height()) + 'px';
                     } else {
-                        translation.val = -(row + 1) * latt.sliderHeight;
+                        translation.val = -((row + 1) * $('#lattice-wrap').height()) + 'px';
                     }
                 } else {
                     translation.prop = 'margin-left';
                     if( direction === 'west'){
-                        translation.val = -(col - 1) * latt.sliderWidth;
+                        translation.val = -((col - 1) * 100) + '%';
                     } else {
-                        translation.val = -(col + 1) * latt.sliderWidth;
+                        translation.val = -((col + 1) * 100) + '%';
                     }
                 }
 
@@ -353,14 +415,15 @@
                 }
             }
 
-            var activateFullScreen =function(context){
-                $(context).css({
-                    'width': '100%',
-                    'height': '100%'
-                });
-                $('.' + latt.containerClass).css({
+            var activateFullWindow =function(){
+                alert('asdf');
+                $("#lattice-wrap").css({
+                    'position':'absolute',
                     'width': window.innerWidth + 'px',
-                    'height': $(window).height() + 'px'
+                    'height': $(window).height() + 'px',
+                    'z-index' : '9999',
+                    'left' : '0',
+                    'right' : '0'
                 });
             }
 
@@ -424,8 +487,8 @@
             startSelector: '>:first-child',
             debug: false,
             speed : 1000,
-            pause : 3000,
             crop: 'center',
+            scale: 'none',
             adjacentEasing: 'swing',
             nonAdjacentEasing: 'linear',
             thumbnailMapEnabled : true,
@@ -481,17 +544,12 @@
                                     '20px solid rgb(167, 161, 161); "></div>',
             },
             styles : {
-                crops:              '.center{top:0;bottom:0;left:0;right:0;}' +
-                                    '.top-left{top:0;left:0;}' + 
-                                    '.top-right{top:0;right:0;}' + 
-                                    '.bottom-left{bottom:0;left:0;}' +
-                                    '.bottom-right{bottom:0;right:0;}'
             },
             sliderWidth: null,
             sliderHeight: null,
             innerWidth: null,
             innerHeight: null,
-            fullScreen: false,
+            fullWindow: false,
             //Runtime data
             grid: [],
             gridImage: null,
@@ -519,6 +577,32 @@
                     offsetC: -1
                 }
             },
+            cropDict: {
+                middle : function(h){ 
+                    return {
+                        'top' : '50%',
+                        'margin-top' : (h/-2) + 'px'
+                    };
+                },
+                center : function(w){
+                    return {
+                        'left' : '50%',
+                        'margin-left' : (w/-2) + 'px'
+                    };
+                },
+                top : {
+                    'top' : '0'
+                },
+                bottom : {
+                    'bottom' : '0'
+                },
+                left : {
+                    'left' : '0'
+                },
+                right : {
+                    'right' : '0'
+                }
+            },
             keyDict: {
                 '37' : 'west',
                 '38' : 'north',
@@ -540,13 +624,6 @@
             return block;
         });
         
-
-        /**
-         * If the pause is less than speed, it'll cause a flicker. This will 
-         * check for that, and if it is smaller, it increases it to just about 
-         * the speed.
-         */
-        if(latt.pause <= latt.speed) latt.pause = latt.speed + 100;
         
         // for each item in the wrapped set
         return this.each(function() {
@@ -564,17 +641,8 @@
                 'list-style' : 'none',
                 'position': 'absolute',
                 'display': 'block',
-                'margin' : 'auto'
             });
 
-
-            /*
-             * Determine max width and height of cells first. If a fixed 
-             * slideWidth and height is set, then then' we'll skip this.
-             */
-            if(latt.fullScreen) {
-                activateFullScreen(this);
-            }
 
             /*
              * Wrap 'this' in a div with a class and set some styles. Adjusting 
@@ -698,14 +766,24 @@
                             cropData = latt.crop;
                         }
 
-                        $reference.addClass(cropData);
-                        
-                        var cellRow = parseInt($reference.data('row')),
-                            cellCol = parseInt($reference.data('col'));
+                        $(window).resize( function(){
+                            var $inner = $reference.parent('.lattice-cell-inner');
+                            console.log($inner);
+                            if($inner.width() >= $reference.width() &&
+                                $inner.height() >= $reference.height()){
+                                $reference.css(getCropStyles('middle-center', $reference));
+                            } else {
+                                $reference.css(getCropStyles(cropData, $reference));
+                                
+                            }
+                            
+                        }).trigger('resize');
+
+                        //$reference.css(getCropStyles(cropData, $reference));
 
                         setCellProperties(rows, cols, {
                             element: $reference,
-                            cellName: cellRow + 'x' + cellCol,
+                            cellName: rows + 'x' + cols,
                             html: $('<div>').append($reference.clone()).html(),
                             row: parseInt($reference.data('row')),
                             col: parseInt($reference.data('col')),
@@ -724,7 +802,24 @@
                         }
 
                         //TODO: Scale options
-
+                        //
+                        //scale/data-scale : 'none|height'|'width'|'width-height'
+                        //
+                        //
+                        //Assume width OR height of element is bigger than its parent .lattice-cell-inner
+                        //
+                        //Case 1: width >= height.
+                        //Scale proportionally until width meets parent width
+                        //
+                        //Case 1.1: it fits!
+                        //Case 1.2: new height > parent height
+                        //Scale proportionally until new height meets parent height.
+                        // 
+                        //Case 2: height > width.
+                        //Scale proportionally until height meets parent height
+                        //If new width > parent width
+                        //Scale proportionally until new width meets parent width.
+                        
                         var cellStyling = 
                                 'width:' + (1/(latt.gridCols+1))*100 + '%;' +
                                 'height:' + (1/(latt.gridRows+1))*100 + '%;' +
@@ -818,6 +913,10 @@
             }
 
 
+            if(latt.fullWindow) {
+                activateFullWindow();
+            }
+
             //Set the active slide
             var $active = $this.find(latt.startSelector);
             $active.toggleClass('active');
@@ -901,8 +1000,8 @@
             */
 
             $(window).resize(function(){
-                if(latt.fullScreen){
-                    activateFullScreen(latt.containerContext);
+                if(latt.fullWindow){
+                    activateFullWindow();
                 }
             });
 
@@ -947,7 +1046,11 @@
             });
 
             $('#lattice-thumbnail-map').mouseleave(function(){
-                //hideThumbnailMap();
+                hideThumbnailMap();
+            });
+
+            $('#lattice-wrap').resize(function(){
+
             });
 
             

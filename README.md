@@ -14,7 +14,7 @@ Currently, it's a buggy work in progress. Performance is still being worked on. 
 #Upcoming Features
 
 This is what I plan to implement before v1.0
-- [ ] Better support for any width and height for cell elements. Currently it's assumed that all cells are the same width and height.
+- [X] Better support for any width and height for cell elements. Currently it's assumed that all cells are the same width and height.
 - [ ] Callback support on animation and navigation
 - [ ] Create an actual full screen mode, not the "full window" functionality that's there currently, that I mistakenly _called_ 'fullscreen' mode, ha.
 - [ ] Ability to activate fullscreen at runtime with an awesome transition
