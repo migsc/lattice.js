@@ -56,14 +56,14 @@ p{
 	/*background-color: rgb(252, 108, 108) !important;*/
 	transition:background-color 2s;
 	-webkit-transition:background-color 2s;
-	opacity: 1.0 !important;
+	opacity: 0.7 !important;
 }
 
 .lattice-thumbnail{
 /*	-webkit-box-shadow: 1px 1px 4px rgba(50, 50, 50, 0.82);
 	-moz-box-shadow:    1px 1px 4px rgba(50, 50, 50, 0.82);
 	box-shadow:         1px 1px 4px rgba(50, 50, 50, 0.82);*/
-	opacity: 0.7;
+	opacity: 0.4;
 }
 #wrapper{
 	width: 80%;

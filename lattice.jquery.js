@@ -655,8 +655,8 @@
             }).addClass(latt.containerClass).wrap(latt.html.wrapper);
 
             $('#lattice-wrap').css({
-                'width': latt.sliderWidth + 'px',
-                'height': latt.sliderHeight + 'px'
+                'width': latt.sliderWidth,
+                'height': latt.sliderHeight
             });
 
             if(latt.thumbnailMapEnabled){
@@ -680,16 +680,16 @@
              * Build the grid array while creating thumbnails and setting 
              * available paths along the way
              */
-            for(var rows = 0; rows <= latt.gridRows; rows++){
+            for(var r = 0; r <= latt.gridRows; r++){
                 
-                latt.grid[rows] = [];
+                latt.grid[r] = [];
 
-                for(var cols = 0; cols <= latt.gridCols; cols++){
+                for(var c = 0; c <= latt.gridCols; c++){
 
                     // Cache the reference to the cell's element
-                    var $reference = $this.find('[data-row=' + rows + '][data-col=' + 
-                                cols + ']'),
-                        clearValue = ( cols == latt.gridCols ) ? 
+                    var $reference = $this.find('[data-row=' + r + '][data-col=' + 
+                                c + ']'),
+                        clearValue = ( c == latt.gridCols ) ? 
                                 'right' : 'none',
                         selfThumbed = false;
 
@@ -699,11 +699,11 @@
                          * If an element doesn't exist for this cell, we'll 
                          * use the default empty placeholder
                          */
-                        setCellProperties(rows, cols, false);
+                        setCellProperties(r, c, false);
                         addThumbnailToMap({
                                 'background':'none'
-                            }, latt.html.thumbnailEmpty, clearValue, rows, 
-                                    cols);
+                            }, latt.html.thumbnailEmpty, clearValue, r, 
+                                    c);
 
                     } else {
 
@@ -719,7 +719,7 @@
                             var thumb = $('<img class="lattice-thumbnail">');
                             thumb.attr('src', $reference.attr('src'));
 
-                            addThumbnailToMap({}, thumb, clearValue, rows, cols); 
+                            addThumbnailToMap({}, thumb, clearValue, r, c); 
 
                         } else if(thumbData === 'self' && latt.html2Canvas) {
 
@@ -732,11 +732,11 @@
                                     ((latt.gridRows+1) * latt.thumbnailHeight) + 
                                     'px',
                                 'background-position' : 
-                                    ( - cols * latt.thumbnailWidth )+ 'px ' + 
-                                    ( - rows * latt.thumbnailHeight) + 'px',
-                                'background-color': '#A7A1A1'
-                            }, latt.html.thumbnailDefault, clearValue, rows, 
-                                    cols);
+                                    ( - c * latt.thumbnailWidth )+ 'px ' + 
+                                    ( - r * latt.thumbnailHeight) + 'px',
+                                'background-color': '#fffff'
+                            }, latt.html.thumbnailDefault, clearValue, r, 
+                                    c);
                             selfThumbed= true;
 
                         } else if (thumbData && thumbData !== 'self') {
@@ -748,42 +748,22 @@
                                     $(thumbData).addClass('lattice-thumbnail')
                                                 .clone()
                                         ).html(), 
-                                clearValue, rows, cols);                            
+                                clearValue, r, c);                            
                         } else {
 
                             //No thumb-data attr so use the default thumb
                             addThumbnailToMap({
-                                'background-color': '#A7A1A1'
-                            }, latt.html.thumbnailDefault, clearValue, rows, 
-                                cols);
+                                'background-color': '#ffffff'
+                            }, latt.html.thumbnailDefault, clearValue, r, 
+                                c);
                         }
 
-                        //Set cropping for the element, which is really just 
-                        //positioning of the element within its parent with
-                        //a hidden overflow.
-                        var cropData = $reference.data('crop');
-                        if(!cropData){
-                            cropData = latt.crop;
-                        }
+                        var cropData = $reference.data('crop'),
+                            scaleData = $reference.data('scale');
 
-                        $(window).resize( function(){
-                            var $inner = $reference.parent('.lattice-cell-inner');
-                            console.log($inner);
-                            if($inner.width() >= $reference.width() &&
-                                $inner.height() >= $reference.height()){
-                                $reference.css(getCropStyles('middle-center', $reference));
-                            } else {
-                                $reference.css(getCropStyles(cropData, $reference));
-                                
-                            }
-                            
-                        }).trigger('resize');
-
-                        //$reference.css(getCropStyles(cropData, $reference));
-
-                        setCellProperties(rows, cols, {
+                        setCellProperties(r, c, {
                             element: $reference,
-                            cellName: rows + 'x' + cols,
+                            cellName: r + 'x' + c,
                             html: $('<div>').append($reference.clone()).html(),
                             row: parseInt($reference.data('row')),
                             col: parseInt($reference.data('col')),
@@ -793,39 +773,23 @@
                             south: false,
                             east: false,
                             west: false,
+                            oWidth: $reference.width(),
+                            oHeight: $reference.height(),
                             adjacents: {},
-                            crop: cropData,
+                            crop: cropData ? cropData : latt.crop,
+                            scale: scaleData ? scaleData : latt.scale
                         });
 
                         if(selfThumbed){
-                            latt.selfThumbedCells.push(latt.grid[rows][cols]);
+                            latt.selfThumbedCells.push(latt.grid[r][c]);
                         }
-
-                        //TODO: Scale options
-                        //
-                        //scale/data-scale : 'none|height'|'width'|'width-height'
-                        //
-                        //
-                        //Assume width OR height of element is bigger than its parent .lattice-cell-inner
-                        //
-                        //Case 1: width >= height.
-                        //Scale proportionally until width meets parent width
-                        //
-                        //Case 1.1: it fits!
-                        //Case 1.2: new height > parent height
-                        //Scale proportionally until new height meets parent height.
-                        // 
-                        //Case 2: height > width.
-                        //Scale proportionally until height meets parent height
-                        //If new width > parent width
-                        //Scale proportionally until new width meets parent width.
                         
                         var cellStyling = 
                                 'width:' + (1/(latt.gridCols+1))*100 + '%;' +
                                 'height:' + (1/(latt.gridRows+1))*100 + '%;' +
                                 'position:absolute;' + 
-                                'left:' + (cols/(latt.gridCols+1))*100 + '%;' +
-                                'top:' + (rows/(latt.gridRows+1))*100 + '%;',
+                                'left:' + (c/(latt.gridCols+1))*100 + '%;' +
+                                'top:' + (r/(latt.gridRows+1))*100 + '%;',
                             innerCellStyling = 
                                 'position:relative;' + 
                                 'overflow:hidden;' + 
@@ -834,7 +798,7 @@
                                 'margin:0';
 
                         $reference.wrap(
-                            '<div id="cell' + rows + '-' + cols +
+                            '<div id="cell' + r + '-' + c +
                                 '" class="lattice-cell" style="' + cellStyling
                                 + '">' + 
                                     '<div class="lattice-cell-inner"' + 
@@ -843,17 +807,33 @@
                              '</div>'
                         );
 
+                        var scale = latt.grid[r][c].scale;
+                        if(scale.indexOf('height') > -1 && scale.indexOf('width') > -1){
+                        } else if(scale.indexOf('width') > -1){
+                            $reference.css({
+                                'width' : '100%',
+                                'max-width' : $reference.width(),
+                                'height' : 'auto'
+                            });
+                        } else if(scale.indexOf('height') > -1){
+                            $reference.css({
+                                'width' : 'auto',
+                                'height' : '100%',
+                                'max-height' : $reference.height()
+                            });
+                        }
+
                     }
                     
-                    if (latt.grid[rows][cols] && latt.grid[rows][cols].travel){
+                    if (latt.grid[r][c] && latt.grid[r][c].travel){
 
                         /**
                          * Define available paths for that cell based on the 
                          * travel data attribute
                          */
-                        $.each(latt.grid[rows][cols].travel.split(','), 
+                        $.each(latt.grid[r][c].travel.split(','), 
                                 function(index, value){
-                                    latt.grid[rows][cols][value] = true;
+                                    latt.grid[r][c][value] = true;
                                     addAdjacentLink($reference, value);
                                 }
                         );
@@ -865,20 +845,20 @@
                             if (latt.compassDict.hasOwnProperty(direction)){
                                 //TODO: Find a faster way of doing this
                                 var adjacentCellSelector = 
-                                    '[data-row=' + (rows + 
+                                    '[data-row=' + (r + 
                                     latt.compassDict[direction].offsetR) + 
-                                    '][data-col=' + (cols + 
+                                    '][data-col=' + (c + 
                                     latt.compassDict[direction].offsetC) + 
                                     ']',
                                     travelProp = {};
 
                                 if( $(adjacentCellSelector).length != 0  ) {
                                     travelProp[direction] = true;
-                                    setCellProperties(rows, cols, travelProp );
+                                    setCellProperties(r, c, travelProp );
                                     addAdjacentLink($reference, direction);
                                 } else {
                                     travelProp[direction] = false;
-                                    setCellProperties(rows, cols, travelProp );
+                                    setCellProperties(r, c, travelProp );
                                 }
                                 
                             }
@@ -1000,10 +980,68 @@
             */
 
             $(window).resize(function(){
+                
                 if(latt.fullWindow){
                     activateFullWindow();
                 }
-            });
+
+                for(var r=0; r<latt.grid.length; r++){
+                    for(var c=0; c<latt.grid[0].length; c++){
+                        if(latt.grid[r][c]){
+                            
+                            var $element = latt.grid[r][c].element;
+                            var $inner = $element.parent('.lattice-cell-inner'),
+                                crop = latt.grid[r][c].crop,
+                                scale = latt.grid[r][c].scale;
+
+                            if(scale.indexOf('height') > -1 && 
+                                scale.indexOf('width') > -1){
+                                if($element.is('img')){
+                                    var widthE = latt.grid[r][c].oWidth,
+                                        heightE = latt.grid[r][c].oHeight,
+                                        widthI = $inner.width(),
+                                        heightI = $inner.height();
+                                
+                                    var ratioW = heightE/widthE,
+                                        ratioH = widthE/heightE;
+
+                                    if(widthE > widthI){
+                                        widthE = widthI;
+                                        heightE = widthE * ratioW;
+                                    }
+
+                                    if(heightE > heightI){
+                                        heightE = heightI;
+                                        widthE = heightE * ratioH;
+                                    }
+                                } else {
+                                    var widthE = '100%',
+                                        heightE = '100%';
+                                }
+
+                                $element.css({
+                                    'width' : widthE,
+                                    'height' : heightE
+                                })
+
+                            }
+
+                            if($inner.width() >= $element.width() || 
+                                scale.indexOf('width') > -1){
+                                crop = crop.slice(0, crop.indexOf('-')) + '-center';
+                            }
+
+                            if($inner.height() >= $element.height() || 
+                                scale.indexOf('height') > -1){
+                                crop = 'middle' + crop.slice(crop.indexOf('-'), crop.length);
+                            }
+
+                            $element.css(getCropStyles(crop, $element));
+                        }
+                    }
+                }
+
+            }).trigger('resize');
 
             $(window).keyup(function(event){
     

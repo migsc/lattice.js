@@ -28,6 +28,8 @@
 
 				<img id="gunslinger-0" data-row="0" data-col="1" src="img/craig.jpg" data-thumb="self" data-crop="bottom-left" />
 
+				<img id="gunslinger-0.5" data-row="0" data-col="0" src="img/mountain.jpg" data-thumb="self" />
+
 
 				<div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self" data-crop="top-center">
 					<div class="text-container">
@@ -192,18 +194,18 @@
 				$("#container").lattice({
 					startSelector: ".slide-1",
 					transition: "slide",
-					speed : 400,
-            		pause : 1000,
+					speed : 500,
             		startSelector: "#gunslinger-0",
             		fullScreen: false,
             		thumbnailWidth : 45,
             		thumbnailHeight: 45,
             		debug: true,
-            		sliderWidth: '100%',
-            		sliderHeight: 700,
-            		gutter: '3%',
+            		sliderWidth: '80%',
+            		sliderHeight: '400px',
+            		gutter: '0%',
             		crop: 'middle-center',
-            		fullWindow: false
+            		fullWindow: false,
+            		scale : 'width-height'
 				});
 			});//doc ready
 		</script>
