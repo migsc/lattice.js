@@ -8,21 +8,152 @@
 
 ;(function($, window, document, undefined) {
 
-    'use strict';
+    "use strict";
 
-    $.fn.lattice = function(options) {
-
-            var updateActiveThumbnail = function(row, col){
-                $('#lattice-thumbnail-map .' +
-                        config.thumbnailActiveClass).toggleClass(
-                            config.thumbnailActiveClass );
-                var selector = '#lattice-thumbnail-map ' +
-                        '.lattice-grid-link#L' + row + '-' + col +
-                         ' .lattice-thumbnail';
-                $(selector).toggleClass(config.thumbnailActiveClass);
+    var pluginName = "lattice",
+        defaults = {
+        //User selected
+        startSelector: '>:first-child',
+        debug: false,
+        speed : 1000,
+        crop: 'center',
+        scale: 'none',
+        adjacentEasing: 'swing',
+        nonAdjacentEasing: 'linear',
+        thumbnailMapEnabled : true,
+        thumbnailWidth : 15,
+        thumbnailHeight: 15,
+        thumbnailSpacing: 3,
+        adjacentLinkHideDuration: 200,
+        adjacentLinkShowDuration: 700,
+        thumbnailMapHideDuration: 200,
+        thumbnailMapShowDuration: 700,
+        usePathCaching: false,
+        selfThumbedCells: [],
+        gutter: '1%',
+        html2Canvas: false,
+        thumbnailActiveClass: 'lattice-thumbnail-active',
+        containerClass: 'lattice-container',
+        html : {
+            wrapper:            '<div id="lattice-wrap" ' +
+                'style="position:relative;' +
+                'overflow:hidden;"></div>',
+            thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
+            thumbnailEmpty:     '<div class="lattice-thumbnail-empty">' +
+                '</div>',
+            thumbnailMap:       '<div id="lattice-thumbnail-map" ' +
+                'style="position:absolute;' +
+                'bottom:15px;right:15px"></div>',
+            northArrow:         '<div style="left:50%;top:15px;' +
+                'position:absolute;opacity:0.4;width:0;' +
+                'height:0;' +
+                'border-left:20px solid transparent;' +
+                'border-right:20px solid transparent;' +
+                'border-bottom:' +
+                '20px solid rgb(167,161,161);"></div>',
+            eastArrow:          '<div style="top:50%;right:15px;' +
+                'position:absolute;opacity:0.4;width:0;' +
+                'height: 0;' +
+                'border-top:20px solid transparent;' +
+                'border-bottom: 20px solid transparent;' +
+                'border-left: ' +
+                '20px solid rgb(167, 161, 161);"></div>',
+            southArrow:         '<div style="left:50%;bottom:15px;' +
+                'position:absolute;opacity:0.4;width:0;' +
+                'height:0;border-left:' +
+                '20px solid transparent;' +
+                'border-right:20px solid transparent;' +
+                'border-top:' +
+                '20px solid rgb(167, 161, 161);"></div>',
+            westArrow:          '<div style="top:50%;left:15px;' +
+                'position:absolute;opacity:0.4;width:0;' +
+                'height:0;border-top:' +
+                '20px solid transparent;border-bottom:' +
+                '20px solid transparent; border-right:' +
+                '20px solid rgb(167, 161, 161); "></div>'
+        },
+        styles : {
+        },
+        sliderWidth: null,
+        sliderHeight: null,
+        innerWidth: null,
+        innerHeight: null,
+        fullWindow: false,
+        //Runtime data
+        grid: [],
+        gridImage: null,
+        currentPath: [],
+        active:{
+            row: null,
+            col: null
+        },
+        inMotion: false,
+        compassDict: {
+            north : {
+                offsetR: -1,
+                offsetC: 0
+            },
+            south : {
+                offsetR: 1,
+                offsetC: 0
+            },
+            east : {
+                offsetR: 0,
+                offsetC: 1
+            },
+            west : {
+                offsetR: 0,
+                offsetC: -1
             }
+        },
+        cropDict: {
+            middle : function(h){
+                return {
+                    'top' : '50%',
+                    'margin-top' : (h/-2) + 'px'
+                };
+            },
+            center : function(w){
+                return {
+                    'left' : '50%',
+                    'margin-left' : (w/-2) + 'px'
+                };
+            },
+            top : {
+                'top' : '0'
+            },
+            bottom : {
+                'bottom' : '0'
+            },
+            left : {
+                'left' : '0'
+            },
+            right : {
+                'right' : '0'
+            }
+        },
+        keyDict: {
+            '37' : 'west',
+            '38' : 'north',
+            '39' : 'east',
+            '40' : 'south'
+        },
+        pathCache: {}
+    };
 
-            var getNatural = function($mainImage) {
+        var methods = {
+
+            updateActiveThumbnail: function(row, col){
+                $('#lattice-thumbnail-map .' +
+                    config.thumbnailActiveClass).toggleClass(
+                        config.thumbnailActiveClass );
+                var selector = '#lattice-thumbnail-map ' +
+                    '.lattice-grid-link#L' + row + '-' + col +
+                    ' .lattice-thumbnail';
+                $(selector).toggleClass(config.thumbnailActiveClass);
+            },
+
+            getNatural: function($mainImage) {
                 var mainImage = $mainImage[0],
                     d = {};
 
@@ -36,33 +167,33 @@
                     d.oHeight = mainImage.naturalHeight;
                 }
                 return d;
-            }
+            },
 
-            var updateActivePanel = function(row, col){
+            updateActivePanel: function(row, col){
                 config.active.row =  row;
                 config.active.col = col;
-            }
+            },
 
-            var hideAdjacentLinks = function(){
+            hideAdjacentLinks: function(){
                 $('.lattice-adjacent-link').hide(config.adjacentLinkHideDuration);
-            }
+            },
 
-            var showAdjacentLinks = function(){
+            showAdjacentLinks: function(){
                 return;
                 $('.lattice-adjacent-link').show(config.adjacentLinkShowDuration);
-            }
+            },
 
-            var hideThumbnailMap = function(){
+            hideThumbnailMap: function(){
                 if(config.fullWindow) return;
                 $('#lattice-thumbnail-map').hide(config.thumbnailMapHideDuration);
-            }
+            },
 
-            var showThumbnailMap = function (){
+            showThumbnailMap: function (){
                 $('#lattice-thumbnail-map').show(config.thumbnailMapShowDuration)
-                                           .css('display','inline');
-            }
+                    .css('display','inline');
+            },
 
-            var mergeObjects = function(list){
+            mergeObjects: function(list){
                 var merged = {};
                 for(var i=0; i<list.length; i++){
                     for(var prop in list[i]){
@@ -72,9 +203,9 @@
                     }
                 }
                 return merged;
-            }
+            },
 
-            var cropPositionToStyle = function(position, dimensionLength){
+            cropPositionToStyle: function(position, dimensionLength){
                 if(config.cropDict.hasOwnProperty(position)){
                     if(typeof config.cropDict[position] === 'function'){
                         return config.cropDict[position](dimensionLength);
@@ -84,9 +215,9 @@
                 } else {
                     return {};
                 }
-            }
+            },
 
-            var getCropStyles = function(cropOption, $reference){
+            getCropStyles: function(cropOption, $reference){
                 var optionPair = cropOption.split('-'),
                     width = $reference.width(),
                     height = $reference.height();
@@ -106,9 +237,9 @@
                     cropPositionToStyle(optionPair[0], height),
                     cropPositionToStyle(optionPair[1], width)
                 ]);
-            }
+            },
 
-            var slideOn = function (path, usePause){
+            slideOn: function (path, usePause){
 
                 if (path.length > 1 || !path ) {
 
@@ -117,9 +248,9 @@
                     var isAdjacentToDestination = ( index == path.length - 2 );
 
                     updateActiveThumbnail( path[index+1].row,
-                                path[index+1].col);
+                        path[index+1].col);
                     slideTo( path[index], path[index+1], false,
-                            isAdjacentToDestination);
+                        isAdjacentToDestination);
                     index++;
 
                     window.setInterval(function(){
@@ -132,17 +263,17 @@
                         }
 
                         lattlog('Taking slide ' + index + ' in the ' +
-                                path[index].directionTaken + ' direction.')
+                            path[index].directionTaken + ' direction.')
 
                         updateActiveThumbnail( path[index+1].row,
-                                path[index+1].col);
+                            path[index+1].col);
 
                         var prevNode = index > 0 ? path[index-1] : false,
                             isAdjacentToDestination = ( index == path.length -
-                                    2 );
+                                2 );
 
                         slideTo( path[index], path[index+1], prevNode,
-                                isAdjacentToDestination);
+                            isAdjacentToDestination);
 
                         index++;
 
@@ -152,9 +283,9 @@
 
 
                 config.inMotion = false;
-            }
+            },
 
-            var translateDirectionToCss = function(direction, row, col){
+            translateDirectionToCss: function(direction, row, col){
                 var translation = {};
 
                 if(direction === 'north' || direction === 'south') {
@@ -174,20 +305,20 @@
                 }
 
                 return translation;
-            }
+            },
 
             //TODO: Refactor this
-            var slideTo = function (fromNode, toNode, prevNode, isAdjacentToDestination){
+            slideTo: function (fromNode, toNode, prevNode, isAdjacentToDestination){
 
                 var $current = fromNode.element,
                     $target = toNode.element,
                     easing = isAdjacentToDestination ?
                         config.adjacentEasing : config.nonAdjacentEasing,
                     animAfter = function(){
-                                    if(isAdjacentToDestination){
-                                        showAdjacentLinks();
-                                    }
-                                },
+                        if(isAdjacentToDestination){
+                            showAdjacentLinks();
+                        }
+                    },
                     animCss = translateDirectionToCss(fromNode.directionTaken,
                         fromNode.row, fromNode.col);
 
@@ -198,32 +329,32 @@
 
                 $('.lattice-container').animate(
                     animOptions, config.speed, easing, function(){
-                                                    if(isAdjacentToDestination){
-                                                        showAdjacentLinks();
-                                                    }
-                                                });
+                        if(isAdjacentToDestination){
+                            showAdjacentLinks();
+                        }
+                    });
 
                 config.active.col = toNode.col;
                 config.active.row = toNode.row;
 
                 lattlog('Update on latt:');
                 lattlog(config);
-            }
+            },
 
-            var createGrid = function(length) {
+            createGrid: function(length) {
                 var arr = new Array(length || 0),
                     i = length;
 
                 if (arguments.length > 1) {
                     var args = Array.prototype.slice.call(arguments, 1);
                     while(i--) arr[length-1 - i] =
-                            createArray.apply(this, args);
+                        createArray.apply(this, args);
                 }
 
                 return arr;
-            }
+            },
 
-            var parseStyle = function(value){
+            parseStyle: function(value){
                 if(typeof value !== 'string'){
                     return false;
                 }
@@ -246,17 +377,17 @@
                     number: 0,
                     type: ''
                 };
-            }
+            },
 
-            var getMaxData = function($parent, name){
+            getMaxData: function($parent, name){
                 return  $parent.children().map(function(){
-                            return parseInt($(this).data(name));
-                        }).get().sort(function(a, b) {
-                            return b - a;
-                        })[0];
-            }
+                    return parseInt($(this).data(name));
+                }).get().sort(function(a, b) {
+                        return b - a;
+                    })[0];
+            },
 
-            var solveGrid = function(start, end, grid){
+            solveGrid: function(start, end, grid){
 
                 lattlog('Starting solver.');
 
@@ -277,7 +408,7 @@
 
                 if ( depthFirstSearch( start, end, grid, path) != null ) {
                     lattlog('Found a solution. Returning path. Caching path. ' +
-                            'Resetting grid visits.');
+                        'Resetting grid visits.');
                     resetGridVisits();
                     path.reverse();
                     config.pathCache[cacheIndex] = path;
@@ -289,13 +420,13 @@
                 lattlog(config);
                 lattlog('Solution not found! Returning null.')
                 return null;
-            }
+            },
 
-            var breadthFirstSearch = function(start, end, grid, path){
+            breadthFirstSearch: function(start, end, grid, path){
                 return null;
-            }
+            },
 
-            var depthFirstSearch = function(start, end, grid, path){
+            depthFirstSearch: function(start, end, grid, path){
 
                 lattlog('Currently at ' + start.row + ':' + start.col);
 
@@ -312,11 +443,11 @@
                 }
 
                 var generallyTo = {
-                        north : start.row > end.row,
-                        east : start.col < end.col,
-                        south : start.row < end.row,
-                        west : start.col > end.col
-                    };
+                    north : start.row > end.row,
+                    east : start.col < end.col,
+                    south : start.row < end.row,
+                    west : start.col > end.col
+                };
 
 
                 var compass = config.grid[start.row][start.col].adjacents;
@@ -325,18 +456,18 @@
                     if(generallyTo[direction] && compass[direction]){
 
                         lattlog('GENERAL BIAS: Checking ' +
-                                compass[direction].row + ':' +
-                                compass[direction].col + ' to the ' +
-                                direction );
+                            compass[direction].row + ':' +
+                            compass[direction].col + ' to the ' +
+                            direction );
 
                         if(grid[start.row][start.col][direction] &&
-                                compass[direction] &&
-                                !compass[direction].visited) {
+                            compass[direction] &&
+                            !compass[direction].visited) {
 
                             lattlog('Room is open. Going ' + direction + '.');
                             grid[start.row][start.col].visited = true;
                             if( depthFirstSearch(compass[direction], end,
-                                    grid, path ) != null ){
+                                grid, path ) != null ){
                                 var pathNode =  grid[start.row][start.col];
                                 pathNode.directionTaken = direction;
                                 path.push(pathNode);
@@ -353,7 +484,7 @@
                 for (var direction in compass) {
 
                     if (compass.hasOwnProperty(direction) &&
-                            compass[direction]) {
+                        compass[direction]) {
 
                         lattlog(compass[direction]);
                         lattlog('Checking ' + compass[direction].row + ':' +
@@ -365,7 +496,7 @@
                             lattlog('Room is open. Going ' + direction + '.');
                             grid[start.row][start.col].visited = true;
                             if( depthFirstSearch(compass[direction], end,
-                                    grid, path ) != null ){
+                                grid, path ) != null ){
 
                                 var pathNode =  grid[start.row][start.col];
                                 pathNode.directionTaken = direction;
@@ -382,18 +513,18 @@
                 lattlog('Reached a dead end.');
                 //If we get here, it's a dead end!
                 return null;
-            }
+            },
 
-            var coordsAreEqual = function(coordOne, coordTwo){
+            coordsAreEqual: function(coordOne, coordTwo){
                 if(coordOne.row == coordTwo.row &&
-                        coordOne.col == coordTwo.col){
+                    coordOne.col == coordTwo.col){
 
                     return true;
                 }
                 return false;
-            }
+            },
 
-            var compassToCss = function(direction) {
+            compassToCss: function(direction) {
                 var compass = {
                     north: 'top',
                     south: 'bottom',
@@ -401,22 +532,21 @@
                     west: 'left'
                 };
                 return compass[direction];
-            }
+            },
 
-            var cloneObject = function(o) {
+            cloneObject: function(o) {
                 return $.extend({}, o);
-            }
+            },
 
-            var resetGridVisits = function() {
+            resetGridVisits: function() {
                 for(var rows = 0; rows <= config.gridRows; rows++){
                     for(var cols = 0; cols <= config.gridCols; cols++){
                         config.grid[rows][cols].visited = false;
                     }
                 }
-            }
+            },
 
-            var activateFullWindow =function(){
-                alert('asdf');
+            activateFullWindow: function(){
                 $("#lattice-wrap").css({
                     'position':'absolute',
                     'width': window.innerWidth + 'px',
@@ -425,9 +555,9 @@
                     'left' : '0',
                     'right' : '0'
                 });
-            }
+            },
 
-            var addThumbnailToMap = function(customCss, thumbnail, clearValue, row, col){
+            addThumbnailToMap: function(customCss, thumbnail, clearValue, row, col){
 
                 if(row === null  || col === null) return;
 
@@ -441,12 +571,12 @@
                     'height': config.thumbnailHeight + 'px',
                     'margin': config.thumbnailSpacing + 'px'
                 }).css(customCss).wrap(function(){
-                    return '<a class="lattice-grid-link" href="#" ' + idValue +
-                           '" ></a>';
-                });
-            }
+                        return '<a class="lattice-grid-link" href="#" ' + idValue +
+                            '" ></a>';
+                    });
+            },
 
-            var setCellProperties = function(row, col, props){
+            setCellProperties: function(row, col, props){
 
                 if(!props){
                     config.grid[row][col] = false;
@@ -462,685 +592,564 @@
                         config.grid[row][col][propName] = props[propName];
                     }
                 }
-            }
+            },
 
-            var addAdjacentLink = function($reference, direction) {
+            addAdjacentLink: function($reference, direction) {
                 $reference.append(
                     '<a class="lattice-adjacent-link" href="#' + direction +
-                    '">' + config.html[direction + 'Arrow'] + '</a>'
+                        '">' + config.html[direction + 'Arrow'] + '</a>'
                 );
-            }
+            },
 
-            var lattlog = function(mixed){
+            lattlog: function(mixed){
                 if( config.debug && window.console && window.console.log) {
                     console.log(mixed);
                 }
-            }
-
-
-        /*
-         * Take the options that the user selects, and merge them with defaults
-         * along with defaults for runtime data.
-         */
-        var config = $.extend({}, {
-            //User selected
-            startSelector: '>:first-child',
-            debug: false,
-            speed : 1000,
-            crop: 'center',
-            scale: 'none',
-            adjacentEasing: 'swing',
-            nonAdjacentEasing: 'linear',
-            thumbnailMapEnabled : true,
-            thumbnailWidth : 15,
-            thumbnailHeight: 15,
-            thumbnailSpacing: 3,
-            adjacentLinkHideDuration: 200,
-            adjacentLinkShowDuration: 700,
-            thumbnailMapHideDuration: 200,
-            thumbnailMapShowDuration: 700,
-            usePathCaching: false,
-            selfThumbedCells: [],
-            gutter: '1%',
-            html2Canvas: false,
-            thumbnailActiveClass: 'lattice-thumbnail-active',
-            containerClass: 'lattice-container',
-            html : {
-                wrapper:            '<div id="lattice-wrap" ' +
-                                    'style="position:relative;' +
-                                    'overflow:hidden;"></div>',
-                thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
-                thumbnailEmpty:     '<div class="lattice-thumbnail-empty">' +
-                                    '</div>',
-                thumbnailMap:       '<div id="lattice-thumbnail-map" ' +
-                                    'style="position:absolute;' +
-                                    'bottom:15px;right:15px"></div>',
-                northArrow:         '<div style="left:50%;top:15px;' +
-                                    'position:absolute;opacity:0.4;width:0;' +
-                                    'height:0;' +
-                                    'border-left:20px solid transparent;' +
-                                    'border-right:20px solid transparent;' +
-                                    'border-bottom:' +
-                                    '20px solid rgb(167,161,161);"></div>',
-                eastArrow:          '<div style="top:50%;right:15px;' +
-                                    'position:absolute;opacity:0.4;width:0;' +
-                                    'height: 0;' +
-                                    'border-top:20px solid transparent;' +
-                                    'border-bottom: 20px solid transparent;' +
-                                    'border-left: ' +
-                                    '20px solid rgb(167, 161, 161);"></div>',
-                southArrow:         '<div style="left:50%;bottom:15px;' +
-                                    'position:absolute;opacity:0.4;width:0;' +
-                                    'height:0;border-left:' +
-                                    '20px solid transparent;' +
-                                    'border-right:20px solid transparent;' +
-                                    'border-top:' +
-                                    '20px solid rgb(167, 161, 161);"></div>',
-                westArrow:          '<div style="top:50%;left:15px;' +
-                                    'position:absolute;opacity:0.4;width:0;' +
-                                    'height:0;border-top:' +
-                                    '20px solid transparent;border-bottom:' +
-                                    '20px solid transparent; border-right:' +
-                                    '20px solid rgb(167, 161, 161); "></div>'
             },
-            styles : {
-            },
-            sliderWidth: null,
-            sliderHeight: null,
-            innerWidth: null,
-            innerHeight: null,
-            fullWindow: false,
-            //Runtime data
-            grid: [],
-            gridImage: null,
-            currentPath: [],
-            active:{
-                row: null,
-                col: null
-            },
-            inMotion: false,
-            compassDict: {
-                north : {
-                    offsetR: -1,
-                    offsetC: 0
-                },
-                south : {
-                    offsetR: 1,
-                    offsetC: 0
-                },
-                east : {
-                    offsetR: 0,
-                    offsetC: 1
-                },
-                west : {
-                    offsetR: 0,
-                    offsetC: -1
-                }
-            },
-            cropDict: {
-                middle : function(h){
-                    return {
-                        'top' : '50%',
-                        'margin-top' : (h/-2) + 'px'
-                    };
-                },
-                center : function(w){
-                    return {
-                        'left' : '50%',
-                        'margin-left' : (w/-2) + 'px'
-                    };
-                },
-                top : {
-                    'top' : '0'
-                },
-                bottom : {
-                    'bottom' : '0'
-                },
-                left : {
-                    'left' : '0'
-                },
-                right : {
-                    'right' : '0'
-                }
-            },
-            keyDict: {
-                '37' : 'west',
-                '38' : 'north',
-                '39' : 'east',
-                '40' : 'south'
-            },
-            pathCache: {}
-        }, options);
 
-        //Add some global stylings to the document
-        $('body').append(function(){
-            var block = '<style type="text/css">';
-            for(var section in config.styles){
-                if(config.styles.hasOwnProperty(section)){
-                    block += config.styles[section];
-                }
-            }
-            block += '</style>';
-            return block;
-        });
+            init: function(config){
+                // for each item in the wrapped set
+                return this.each(function() {
 
-
-        // for each item in the wrapped set
-        return this.each(function() {
-
-            // Cache 'this'
-            var $this = $(this);
-
-            // Cache the grid size
-            config.gridRows = getMaxData($this, 'row');
-            config.gridCols = getMaxData($this, 'col');
-
-            config.containerContext = $this.context;
-
-            $this.children().css({
-                'list-style' : 'none',
-                'position': 'absolute',
-                'display': 'block'
-            });
-
-
-            /*
-             * Wrap 'this' in a div with a class and set some styles. Adjusting
-             * the 'left' css values, so need to set positioning.
-             */
-            $this.css({
-                'position' : 'relative',
-                'width' : (config.gridCols + 1) * 100 + '%',
-                'height' : (config.gridRows + 1) * 100 + '%'
-            }).addClass(config.containerClass).wrap(config.html.wrapper);
-
-            $('#lattice-wrap').css({
-                'width': config.sliderWidth,
-                'height': config.sliderHeight
-            });
-
-            if(config.thumbnailMapEnabled){
-                //Add the thumbnail map
-                lattlog($('#lattice-wrap').length);
-                $(config.html.thumbnailMap).appendTo('#lattice-wrap')
-                    .width(function(){
-                        return ( config.thumbnailWidth +
-                                ( 2 * config.thumbnailSpacing ) ) *
-                                (config.gridCols + 1);
-                    }).height(function(){
-                        return ( config.thumbnailHeight +
-                                ( 2 * config.thumbnailSpacing ) )
-                                * (config.gridRows + 1);
+                    //Add some global stylings to the document
+                    $('body').append(function(){
+                        var block = '<style type="text/css">';
+                        for(var section in config.styles){
+                            if(config.styles.hasOwnProperty(section)){
+                                block += config.styles[section];
+                            }
+                        }
+                        block += '</style>';
+                        return block;
                     });
-                lattlog($('#lattice-wrap #lattice-thumbnail-map'));
-            }
+
+                    // Cache 'this'
+                    var $this = $(this);
+
+                    // Cache the grid size
+                    config.gridRows = getMaxData($this, 'row');
+                    config.gridCols = getMaxData($this, 'col');
+
+                    config.containerContext = $this.context;
+
+                    $this.children().css({
+                        'list-style' : 'none',
+                        'position': 'absolute',
+                        'display': 'block'
+                    });
 
 
-            /*
-             * Build the grid array while creating thumbnails and setting
-             * available paths along the way
-             */
-            for(var r = 0; r <= config.gridRows; r++){
+                    /*
+                     * Wrap 'this' in a div with a class and set some styles. Adjusting
+                     * the 'left' css values, so need to set positioning.
+                     */
+                    $this.css({
+                        'position' : 'relative',
+                        'width' : (config.gridCols + 1) * 100 + '%',
+                        'height' : (config.gridRows + 1) * 100 + '%'
+                    }).addClass(config.containerClass).wrap(config.html.wrapper);
 
-                config.grid[r] = [];
+                    $('#lattice-wrap').css({
+                        'width': config.sliderWidth,
+                        'height': config.sliderHeight
+                    });
 
-                for(var c = 0; c <= config.gridCols; c++){
+                    if(config.thumbnailMapEnabled){
+                        //Add the thumbnail map
+                        lattlog($('#lattice-wrap').length);
+                        $(config.html.thumbnailMap).appendTo('#lattice-wrap')
+                            .width(function(){
+                                return ( config.thumbnailWidth +
+                                    ( 2 * config.thumbnailSpacing ) ) *
+                                    (config.gridCols + 1);
+                            }).height(function(){
+                                return ( config.thumbnailHeight +
+                                    ( 2 * config.thumbnailSpacing ) )
+                                    * (config.gridRows + 1);
+                            });
+                        lattlog($('#lattice-wrap #lattice-thumbnail-map'));
+                    }
 
-                    // Cache the reference to the cell's element
-                    var $reference = $this.find('[data-row=' + r + '][data-col=' +
-                                c + ']'),
-                        clearValue = ( c == config.gridCols ) ?
-                                'right' : 'none',
-                        selfThumbed = false;
 
-                    if($reference.length === 0){
+                    /*
+                     * Build the grid array while creating thumbnails and setting
+                     * available paths along the way
+                     */
+                    for(var r = 0; r <= config.gridRows; r++){
 
-                        /**
-                         * If an element doesn't exist for this cell, we'll
-                         * use the default empty placeholder
-                         */
-                        setCellProperties(r, c, false);
-                        addThumbnailToMap({
-                                'background':'none'
-                            }, config.html.thumbnailEmpty, clearValue, r,
+                        config.grid[r] = [];
+
+                        for(var c = 0; c <= config.gridCols; c++){
+
+                            // Cache the reference to the cell's element
+                            var $reference = $this.find('[data-row=' + r + '][data-col=' +
+                                    c + ']'),
+                                clearValue = ( c == config.gridCols ) ?
+                                    'right' : 'none',
+                                selfThumbed = false;
+
+                            if($reference.length === 0){
+
+                                /**
+                                 * If an element doesn't exist for this cell, we'll
+                                 * use the default empty placeholder
+                                 */
+                                setCellProperties(r, c, false);
+                                addThumbnailToMap({
+                                        'background':'none'
+                                    }, config.html.thumbnailEmpty, clearValue, r,
                                     c);
 
-                    } else {
+                            } else {
 
-                        /**
-                         * This element does exist. We'll create the thumbnail,
-                         * set the cell properties in our global, and add some
-                         * positioning for the actual element.
-                         */
-                        var thumbData = $reference.data('thumb');
-                        if(thumbData === 'self' && $reference.is('img') ){
+                                /**
+                                 * This element does exist. We'll create the thumbnail,
+                                 * set the cell properties in our global, and add some
+                                 * positioning for the actual element.
+                                 */
+                                var thumbData = $reference.data('thumb');
+                                if(thumbData === 'self' && $reference.is('img') ){
 
-                            //The element itself is an image and will be thumbed
-                            var thumb = $('<img class="lattice-thumbnail">');
-                            thumb.attr('src', $reference.attr('src'));
+                                    //The element itself is an image and will be thumbed
+                                    var thumb = $('<img class="lattice-thumbnail">');
+                                    thumb.attr('src', $reference.attr('src'));
 
-                            addThumbnailToMap({}, thumb, clearValue, r, c);
+                                    addThumbnailToMap({}, thumb, clearValue, r, c);
 
-                        } else if(thumbData === 'self' && config.html2Canvas) {
+                                } else if(thumbData === 'self' && config.html2Canvas) {
 
-                            //NOT an image so it will be thumbed into a canvas
-                            addThumbnailToMap({
-                                'background-repeat' : 'no-repeat',
-                                'background-size' :
-                                    ((config.gridCols+1) * config.thumbnailWidth ) +
-                                     'px ' +
-                                    ((config.gridRows+1) * config.thumbnailHeight) +
-                                    'px',
-                                'background-position' :
-                                    ( - c * config.thumbnailWidth )+ 'px ' +
-                                    ( - r * config.thumbnailHeight) + 'px',
-                                'background-color': '#fffff'
-                            }, config.html.thumbnailDefault, clearValue, r,
-                                    c);
-                            selfThumbed= true;
+                                    //NOT an image so it will be thumbed into a canvas
+                                    addThumbnailToMap({
+                                            'background-repeat' : 'no-repeat',
+                                            'background-size' :
+                                                ((config.gridCols+1) * config.thumbnailWidth ) +
+                                                    'px ' +
+                                                    ((config.gridRows+1) * config.thumbnailHeight) +
+                                                    'px',
+                                            'background-position' :
+                                                ( - c * config.thumbnailWidth )+ 'px ' +
+                                                    ( - r * config.thumbnailHeight) + 'px',
+                                            'background-color': '#fffff'
+                                        }, config.html.thumbnailDefault, clearValue, r,
+                                        c);
+                                    selfThumbed= true;
 
-                        } else if (thumbData && thumbData !== 'self') {
+                                } else if (thumbData && thumbData !== 'self') {
 
-                            //Some selector for an image in the thumb-data attr
-                            //TODO: Make this happen
-                            addThumbnailToMap({},
-                                $('<div>').append(
-                                    $(thumbData).addClass('lattice-thumbnail')
+                                    //Some selector for an image in the thumb-data attr
+                                    //TODO: Make this happen
+                                    addThumbnailToMap({},
+                                        $('<div>').append(
+                                            $(thumbData).addClass('lattice-thumbnail')
                                                 .clone()
                                         ).html(),
-                                clearValue, r, c);
-                        } else {
+                                        clearValue, r, c);
+                                } else {
 
-                            //No thumb-data attr so use the default thumb
-                            addThumbnailToMap({
-                                'background-color': '#ffffff'
-                            }, config.html.thumbnailDefault, clearValue, r,
-                                c);
-                        }
+                                    //No thumb-data attr so use the default thumb
+                                    addThumbnailToMap({
+                                            'background-color': '#ffffff'
+                                        }, config.html.thumbnailDefault, clearValue, r,
+                                        c);
+                                }
 
-                        var cropData = $reference.data('crop'),
-                            scaleData = $reference.data('scale');
+                                var cropData = $reference.data('crop'),
+                                    scaleData = $reference.data('scale');
 
-                        setCellProperties(r, c, {
-                            element: $reference,
-                            cellName: r + 'x' + c,
-                            html: $('<div>').append($reference.clone()).html(),
-                            row: parseInt($reference.data('row')),
-                            col: parseInt($reference.data('col')),
-                            travel: $reference.data('travel'),
-                            visited: false,
-                            north: false,
-                            south: false,
-                            east: false,
-                            west: false,
-                            oWidth: $reference.width(),
-                            oHeight: $reference.height(),
-                            adjacents: {},
-                            crop: cropData ? cropData : config.crop,
-                            scale: scaleData ? scaleData : config.scale
+                                setCellProperties(r, c, {
+                                    element: $reference,
+                                    cellName: r + 'x' + c,
+                                    html: $('<div>').append($reference.clone()).html(),
+                                    row: parseInt($reference.data('row')),
+                                    col: parseInt($reference.data('col')),
+                                    travel: $reference.data('travel'),
+                                    visited: false,
+                                    north: false,
+                                    south: false,
+                                    east: false,
+                                    west: false,
+                                    oWidth: $reference.width(),
+                                    oHeight: $reference.height(),
+                                    adjacents: {},
+                                    crop: cropData ? cropData : config.crop,
+                                    scale: scaleData ? scaleData : config.scale
+                                });
+
+                                if(selfThumbed){
+                                    config.selfThumbedCells.push(config.grid[r][c]);
+                                }
+
+                                var cellStyling =
+                                        'width:' + (1/(config.gridCols+1))*100 + '%;' +
+                                            'height:' + (1/(config.gridRows+1))*100 + '%;' +
+                                            'position:absolute;' +
+                                            'left:' + (c/(config.gridCols+1))*100 + '%;' +
+                                            'top:' + (r/(config.gridRows+1))*100 + '%;',
+                                    innerCellStyling =
+                                        'position:relative;' +
+                                            'overflow:hidden;' +
+                                            'height:100%;' +
+                                            'width:100%;' +
+                                            'margin:0';
+
+                                $reference.wrap(
+                                    '<div id="cell' + r + '-' + c +
+                                        '" class="lattice-cell" style="' + cellStyling
+                                        + '">' +
+                                        '<div class="lattice-cell-inner"' +
+                                        ' style="'+ innerCellStyling + '">' +
+                                        '</div>' +
+                                        '</div>'
+                                );
+
+                                var scale = config.grid[r][c].scale;
+                                if(scale.indexOf('height') > -1 && scale.indexOf('width') > -1){
+                                } else if(scale.indexOf('width') > -1){
+                                    $reference.css({
+                                        'width' : '100%',
+                                        'max-width' : $reference.width(),
+                                        'height' : 'auto'
+                                    });
+                                } else if(scale.indexOf('height') > -1){
+                                    $reference.css({
+                                        'width' : 'auto',
+                                        'height' : '100%',
+                                        'max-height' : $reference.height()
+                                    });
+                                }
+
+                            }
+
+                            if (config.grid[r][c] && config.grid[r][c].travel){
+
+                                /**
+                                 * Define available paths for that cell based on the
+                                 * travel data attribute
+                                 */
+                                $.each(config.grid[r][c].travel.split(','),
+                                    function(index, value){
+                                        config.grid[r][c][value] = true;
+                                        addAdjacentLink($reference, value);
+                                    }
+                                );
+
+                            } else {
+
+                                //No path data attribute? Go by adjacency
+                                for( var direction in config.compassDict ){
+                                    if (config.compassDict.hasOwnProperty(direction)){
+                                        //TODO: Find a faster way of doing this
+                                        var adjacentCellSelector =
+                                                '[data-row=' + (r +
+                                                    config.compassDict[direction].offsetR) +
+                                                    '][data-col=' + (c +
+                                                    config.compassDict[direction].offsetC) +
+                                                    ']',
+                                            travelProp = {};
+
+                                        if( $(adjacentCellSelector).length != 0  ) {
+                                            travelProp[direction] = true;
+                                            setCellProperties(r, c, travelProp );
+                                            addAdjacentLink($reference, direction);
+                                        } else {
+                                            travelProp[direction] = false;
+                                            setCellProperties(r, c, travelProp );
+                                        }
+
+                                    }
+                                }
+
+                            }
+
+                        } //end col loop
+
+                    }//end row loop
+
+                    //Now set the gutters for each cell.
+                    config.gutter = parseStyle(config.gutter);
+                    if(config.gutter.type === 'px'){
+
+                        var hGutter = (config.gutter.number/config.sliderWidth) * 100,
+                            vGutter = (config.gutter.number/config.sliderHeight) *  100;
+
+                        $('.lattice-cell-inner').css({
+                            'margin' : '0 auto',
+                            'width' : 100 - 2 * (hGutter) + '%',
+                            'height' : 100 - 2 * (vGutter) + '%',
+                            'top' : vGutter + '% '
                         });
-
-                        if(selfThumbed){
-                            config.selfThumbedCells.push(config.grid[r][c]);
-                        }
-
-                        var cellStyling =
-                                'width:' + (1/(config.gridCols+1))*100 + '%;' +
-                                'height:' + (1/(config.gridRows+1))*100 + '%;' +
-                                'position:absolute;' +
-                                'left:' + (c/(config.gridCols+1))*100 + '%;' +
-                                'top:' + (r/(config.gridRows+1))*100 + '%;',
-                            innerCellStyling =
-                                'position:relative;' +
-                                'overflow:hidden;' +
-                                'height:100%;' +
-                                'width:100%;' +
-                                'margin:0';
-
-                        $reference.wrap(
-                            '<div id="cell' + r + '-' + c +
-                                '" class="lattice-cell" style="' + cellStyling
-                                + '">' +
-                                    '<div class="lattice-cell-inner"' +
-                                    ' style="'+ innerCellStyling + '">' +
-                                    '</div>' +
-                             '</div>'
-                        );
-
-                        var scale = config.grid[r][c].scale;
-                        if(scale.indexOf('height') > -1 && scale.indexOf('width') > -1){
-                        } else if(scale.indexOf('width') > -1){
-                            $reference.css({
-                                'width' : '100%',
-                                'max-width' : $reference.width(),
-                                'height' : 'auto'
-                            });
-                        } else if(scale.indexOf('height') > -1){
-                            $reference.css({
-                                'width' : 'auto',
-                                'height' : '100%',
-                                'max-height' : $reference.height()
-                            });
-                        }
-
+                    } else if(config.gutter.type === '%'){
+                        $('.lattice-cell-inner').css({
+                            'margin' : '0 auto',
+                            'width' : 100 - (2 * config.gutter.number) + '%',
+                            'height' : 100 - (2 * config.gutter.number) + '%',
+                            'top' : config.gutter.number + '% '
+                        });
                     }
 
-                    if (config.grid[r][c] && config.grid[r][c].travel){
 
-                        /**
-                         * Define available paths for that cell based on the
-                         * travel data attribute
-                         */
-                        $.each(config.grid[r][c].travel.split(','),
-                                function(index, value){
-                                    config.grid[r][c][value] = true;
-                                    addAdjacentLink($reference, value);
-                                }
-                        );
-
-                    } else {
-
-                        //No path data attribute? Go by adjacency
-                        for( var direction in config.compassDict ){
-                            if (config.compassDict.hasOwnProperty(direction)){
-                                //TODO: Find a faster way of doing this
-                                var adjacentCellSelector =
-                                    '[data-row=' + (r +
-                                    config.compassDict[direction].offsetR) +
-                                    '][data-col=' + (c +
-                                    config.compassDict[direction].offsetC) +
-                                    ']',
-                                    travelProp = {};
-
-                                if( $(adjacentCellSelector).length != 0  ) {
-                                    travelProp[direction] = true;
-                                    setCellProperties(r, c, travelProp );
-                                    addAdjacentLink($reference, direction);
-                                } else {
-                                    travelProp[direction] = false;
-                                    setCellProperties(r, c, travelProp );
-                                }
-
-                            }
-                        }
-
+                    if(config.fullWindow) {
+                        activateFullWindow();
                     }
 
-                } //end col loop
+                    //Set the active slide
+                    var $active = $this.find(config.startSelector);
+                    $active.toggleClass('active');
 
-            }//end row loop
+                    config.active.row = parseInt($active.data('row'));
+                    config.active.col = parseInt($active.data('col'));
 
-            //Now set the gutters for each cell.
-            config.gutter = parseStyle(config.gutter);
-            if(config.gutter.type === 'px'){
+                    if($('[data-thumb=self]').length > 0 && config.html2Canvas){
+                        html2canvas($("#container"), {
+                            useOverflow: true,
+                            onpreloaded: function(){
+                                $("#lattice-wrap").css('overflow','visible');
+                                $this.css({
+                                    'margin-top' : '0px',
+                                    'margin-left' : '0px'
+                                });
+                            },
+                            onrendered: function(canvas, rows, cols) {
+                                var style = $('<style>.lattice-thumbnail-self {' +
+                                    ' background-image: url(' +
+                                    canvas.toDataURL('image/png') +
+                                    '); }</style>');
+                                $('html > head').append(style);
 
-                var hGutter = (config.gutter.number/config.sliderWidth) * 100,
-                    vGutter = (config.gutter.number/config.sliderHeight) *  100;
+                                $("#lattice-wrap").css('overflow','hidden');
+                                config.gridImage = canvas.toDataURL('image/png');
 
-                $('.lattice-cell-inner').css({
-                    'margin' : '0 auto',
-                    'width' : 100 - 2 * (hGutter) + '%',
-                    'height' : 100 - 2 * (vGutter) + '%',
-                    'top' : vGutter + '% '
-                });
-            } else if(config.gutter.type === '%'){
-                $('.lattice-cell-inner').css({
-                    'margin' : '0 auto',
-                    'width' : 100 - (2 * config.gutter.number) + '%',
-                    'height' : 100 - (2 * config.gutter.number) + '%',
-                    'top' : config.gutter.number + '% '
-                });
-            }
-
-
-            if(config.fullWindow) {
-                activateFullWindow();
-            }
-
-            //Set the active slide
-            var $active = $this.find(config.startSelector);
-            $active.toggleClass('active');
-
-            config.active.row = parseInt($active.data('row'));
-            config.active.col = parseInt($active.data('col'));
-
-            if($('[data-thumb=self]').length > 0 && config.html2Canvas){
-                html2canvas($("#container"), {
-                        useOverflow: true,
-                        onpreloaded: function(){
-                            $("#lattice-wrap").css('overflow','visible');
-                            $this.css({
-                                'margin-top' : '0px',
-                                'margin-left' : '0px'
-                            });
-                        },
-                        onrendered: function(canvas, rows, cols) {
-                            var style = $('<style>.lattice-thumbnail-self {' +
-                                            ' background-image: url(' +
-                                            canvas.toDataURL('image/png') +
-                                            '); }</style>');
-                            $('html > head').append(style);
-
-                            $("#lattice-wrap").css('overflow','hidden');
-                            config.gridImage = canvas.toDataURL('image/png');
-
-                            $this.css({
-                                'margin-top' : - ( config.active.row *
-                                    config.sliderHeight ) + 'px',
-                                'margin-left' : - ( config.active.col *
-                                    config.sliderWidth ) + 'px'
-                            });
-                            for(var i=0; i<config.selfThumbedCells.length;i++){
-                                var cell = config.selfThumbedCells[i];
-                                var selector = '#L' +
-                                                cell.row + '-' + cell.col +
-                                                ' .lattice-thumbnail';
-                                $(selector).addClass('lattice-thumbnail-self');
+                                $this.css({
+                                    'margin-top' : - ( config.active.row *
+                                        config.sliderHeight ) + 'px',
+                                    'margin-left' : - ( config.active.col *
+                                        config.sliderWidth ) + 'px'
+                                });
+                                for(var i=0; i<config.selfThumbedCells.length;i++){
+                                    var cell = config.selfThumbedCells[i];
+                                    var selector = '#L' +
+                                        cell.row + '-' + cell.col +
+                                        ' .lattice-thumbnail';
+                                    $(selector).addClass('lattice-thumbnail-self');
+                                }
                             }
+                        });
+                    }
+
+                    //Move the container to the chosen slide to be the first active.
+                    $this.css({
+                        'margin-top' : ((config.active.row)*-100) + '%',
+                        'margin-left' : ((config.active.col)*-100) + '%'
+                    });
+
+                    updateActiveThumbnail(config.active.row, config.active.col);
+
+                    hideThumbnailMap();
+                    hideAdjacentLinks();
+
+                    //Some more setup for the grid, now that all the cells are defined
+                    for(var rows = 0; rows <= config.gridRows; rows++){
+                        for(var cols = 0; cols <= config.gridCols; cols++){
+
+                            config.grid[rows][cols].adjacents = {
+                                north: (rows-1) < 0 ? false : config.grid[rows-1][cols],
+                                south: (rows+1) >= config.grid.length ?
+                                    false  : config.grid[rows+1][cols],
+                                east:  (cols+1) >= config.grid[0].length ?
+                                    false  : config.grid[rows][cols+1],
+                                west:  (cols-1) < 0 ?
+                                    false  : config.grid[rows][cols-1]
+                            };
+
+
                         }
-                });
-            }
-
-            //Move the container to the chosen slide to be the first active.
-            $this.css({
-                'margin-top' : ((config.active.row)*-100) + '%',
-                'margin-left' : ((config.active.col)*-100) + '%'
-            });
-
-            updateActiveThumbnail(config.active.row, config.active.col);
-
-            hideThumbnailMap();
-            hideAdjacentLinks();
-
-            //Some more setup for the grid, now that all the cells are defined
-            for(var rows = 0; rows <= config.gridRows; rows++){
-                for(var cols = 0; cols <= config.gridCols; cols++){
-
-                    config.grid[rows][cols].adjacents = {
-                        north: (rows-1) < 0 ? false : config.grid[rows-1][cols],
-                        south: (rows+1) >= config.grid.length ?
-                                false  : config.grid[rows+1][cols],
-                        east:  (cols+1) >= config.grid[0].length ?
-                                false  : config.grid[rows][cols+1],
-                        west:  (cols-1) < 0 ?
-                                false  : config.grid[rows][cols-1]
-                    };
+                    }
 
 
-                }
-            }
-
-
-            lattlog(config);
+                    lattlog(config);
 
 
 
-            /******************************
-            * EVENTS
-            */
+                    /******************************
+                     * EVENTS
+                     */
 
-            $(window).resize(function(){
+                    $(window).resize(function(){
 
-                if(config.fullWindow){
-                    activateFullWindow();
-                }
+                        if(config.fullWindow){
+                            activateFullWindow();
+                        }
 
-                for(var r=0; r<config.grid.length; r++){
-                    for(var c=0; c<config.grid[0].length; c++){
-                        if(config.grid[r][c]){
+                        for(var r=0; r<config.grid.length; r++){
+                            for(var c=0; c<config.grid[0].length; c++){
+                                if(config.grid[r][c]){
 
-                            var $element = config.grid[r][c].element;
-                            var $inner = $element.parent('.lattice-cell-inner'),
-                                crop = config.grid[r][c].crop,
-                                scale = config.grid[r][c].scale;
+                                    var $element = config.grid[r][c].element;
+                                    var $inner = $element.parent('.lattice-cell-inner'),
+                                        crop = config.grid[r][c].crop,
+                                        scale = config.grid[r][c].scale;
 
-                            if(scale.indexOf('height') > -1 &&
-                                scale.indexOf('width') > -1){
-                                if($element.is('img')){
-                                    var widthE = config.grid[r][c].oWidth,
-                                        heightE = config.grid[r][c].oHeight,
-                                        widthI = $inner.width(),
-                                        heightI = $inner.height();
+                                    if(scale.indexOf('height') > -1 &&
+                                        scale.indexOf('width') > -1){
+                                        if($element.is('img')){
+                                            var widthE = config.grid[r][c].oWidth,
+                                                heightE = config.grid[r][c].oHeight,
+                                                widthI = $inner.width(),
+                                                heightI = $inner.height();
 
-                                    var ratioW = heightE/widthE,
-                                        ratioH = widthE/heightE;
+                                            var ratioW = heightE/widthE,
+                                                ratioH = widthE/heightE;
 
-                                    if(widthE > widthI){
-                                        widthE = widthI;
-                                        heightE = widthE * ratioW;
+                                            if(widthE > widthI){
+                                                widthE = widthI;
+                                                heightE = widthE * ratioW;
+                                            }
+
+                                            if(heightE > heightI){
+                                                heightE = heightI;
+                                                widthE = heightE * ratioH;
+                                            }
+                                        } else {
+                                            var widthE = '100%',
+                                                heightE = '100%';
+                                        }
+
+                                        $element.css({
+                                            'width' : widthE,
+                                            'height' : heightE
+                                        })
+
                                     }
 
-                                    if(heightE > heightI){
-                                        heightE = heightI;
-                                        widthE = heightE * ratioH;
+                                    if($inner.width() >= $element.width() ||
+                                        scale.indexOf('width') > -1){
+                                        crop = crop.slice(0, crop.indexOf('-')) + '-center';
                                     }
-                                } else {
-                                    var widthE = '100%',
-                                        heightE = '100%';
+
+                                    if($inner.height() >= $element.height() ||
+                                        scale.indexOf('height') > -1){
+                                        crop = 'middle' + crop.slice(crop.indexOf('-'), crop.length);
+                                    }
+
+                                    $element.css(getCropStyles(crop, $element));
                                 }
-
-                                $element.css({
-                                    'width' : widthE,
-                                    'height' : heightE
-                                })
-
                             }
-
-                            if($inner.width() >= $element.width() ||
-                                scale.indexOf('width') > -1){
-                                crop = crop.slice(0, crop.indexOf('-')) + '-center';
-                            }
-
-                            if($inner.height() >= $element.height() ||
-                                scale.indexOf('height') > -1){
-                                crop = 'middle' + crop.slice(crop.indexOf('-'), crop.length);
-                            }
-
-                            $element.css(getCropStyles(crop, $element));
                         }
-                    }
-                }
 
-            }).trigger('resize');
+                    }).trigger('resize');
 
-            $(window).keyup(function(event){
+                    $(window).keyup(function(event){
 
-                if(config.inMotion || config.keyDict[event.which] === undefined) {
-                    return;
-                }
+                        if(config.inMotion || config.keyDict[event.which] === undefined) {
+                            return;
+                        }
 
-                lattlog('KEYPRESS DETECTED: ' + config.keyDict[event.which]);
+                        lattlog('KEYPRESS DETECTED: ' + config.keyDict[event.which]);
 
-                config.inMotion = true;
+                        config.inMotion = true;
 
-                var key = parseInt(event.which),
-                    direction = config.keyDict[event.which];
-                var path = [config.grid[config.active.row][config.active.col]],
-                    row = config.active.row + config.compassDict[direction].offsetR,
-                    col = config.active.col + config.compassDict[direction].offsetC;
+                        var key = parseInt(event.which),
+                            direction = config.keyDict[event.which];
+                        var path = [config.grid[config.active.row][config.active.col]],
+                            row = config.active.row + config.compassDict[direction].offsetR,
+                            col = config.active.col + config.compassDict[direction].offsetC;
 
-                path[0].directionTaken = direction;
-                config.grid[row][col].directionTaken = direction;
-                path.push(config.grid[row][col]);
+                        path[0].directionTaken = direction;
+                        config.grid[row][col].directionTaken = direction;
+                        path.push(config.grid[row][col]);
 
-                lattlog(path);
+                        lattlog(path);
 
-                slideOn(path, false);
+                        slideOn(path, false);
 
-                return;
-            })
+                        return;
+                    })
 
-            $('.active').mouseenter(function(){
-                showAdjacentLinks();
-                showThumbnailMap();
-            });
+                    $('.active').mouseenter(function(){
+                        showAdjacentLinks();
+                        showThumbnailMap();
+                    });
 
-            $('.active').mouseleave(function(){
-                hideAdjacentLinks();
-            });
+                    $('.active').mouseleave(function(){
+                        hideAdjacentLinks();
+                    });
 
-            $('#lattice-thumbnail-map').mouseenter(function(){
-                showThumbnailMap();
-            });
+                    $('#lattice-thumbnail-map').mouseenter(function(){
+                        showThumbnailMap();
+                    });
 
-            $('#lattice-thumbnail-map').mouseleave(function(){
-                hideThumbnailMap();
-            });
+                    $('#lattice-thumbnail-map').mouseleave(function(){
+                        hideThumbnailMap();
+                    });
 
-            $('#lattice-wrap').resize(function(){
-                //TODO
-            });
+                    $('#lattice-wrap').resize(function(){
+                        //TODO
+                    });
 
 
 
-            $('.lattice-adjacent-link').click(function(e){
-                e.preventDefault();
-                if(config.inMotion) return;
-                else config.inMotion = true;
+                    $('.lattice-adjacent-link').click(function(e){
+                        e.preventDefault();
+                        if(config.inMotion) return;
+                        else config.inMotion = true;
 
-                var hrefValue = $(this).attr('href'),
-                    path = [config.grid[config.active.row][config.active.col]];
+                        var hrefValue = $(this).attr('href'),
+                            path = [config.grid[config.active.row][config.active.col]];
 
-                var direction = hrefValue.replace('#', '');
+                        var direction = hrefValue.replace('#', '');
 
-                var rOffset = config.compassDict[direction].offsetR,
-                    cOffset = config.compassDict[direction].offsetC;
+                        var rOffset = config.compassDict[direction].offsetR,
+                            cOffset = config.compassDict[direction].offsetC;
 
-                config.grid[config.active.row + rOffset][config.active.col + cOffset].directionTaken = direction;
-                path[0].directionTaken = direction;
-                path.push(config.grid[config.active.row + rOffset][config.active.col +  cOffset]);
+                        config.grid[config.active.row + rOffset][config.active.col + cOffset].directionTaken = direction;
+                        path[0].directionTaken = direction;
+                        path.push(config.grid[config.active.row + rOffset][config.active.col +  cOffset]);
 
-                lattlog(path);
+                        lattlog(path);
 
-                slideOn(path, false);
+                        slideOn(path, false);
 
-                return;
-            });
+                        return;
+                    });
 
-            $('.lattice-grid-link').click(function(e){
-                e.preventDefault();
-                if(config.inMotion ){
-                    return;
-                } else {
-                    config.inMotion = true;
-                }
+                    $('.lattice-grid-link').click(function(e){
+                        e.preventDefault();
+                        if(config.inMotion ){
+                            return;
+                        } else {
+                            config.inMotion = true;
+                        }
 
-                var coords = $(this)[0].id.replace('L', '').split('-');
+                        var coords = $(this)[0].id.replace('L', '').split('-');
 
-                var path =  solveGrid(
-                                config.grid[config.active.row][config.active.col],
-                                config.grid[coords[0]][coords[1]], config.grid);
-                slideOn(path, true);
-                return;
-            });
+                        var path =  solveGrid(
+                            config.grid[config.active.row][config.active.col],
+                            config.grid[coords[0]][coords[1]], config.grid);
+                        slideOn(path, true);
+                        return;
+                    });
 
 
 
 
-        }); // end each
+                }); // end each
+            }
+        };
+
+    $.fn[pluginName] = function(methodOrOptions){
+        if( methods[methodOrOptions]) {
+            return methods[methodOrOptions].apply(this, Array.prototype.slice.call(arguments, 1));
+        } else if(typeof methodOrOptions === "object" || !methodOrOptions) {
+            console.log($.extend(true, {}, $.fn[pluginName].defaults, methodOrOptions));
+            this.data("lattice", $.extend(true, {}, $.fn[pluginName].defaults, methodOrOptions));
+
+            return;
+            return methods.init.apply(this, arguments);
+        } else {
+            $.error("Method " + methodOrOptions + " does not exists on jQuery.lattice");
+        }
 
         return this;
-
-    } // End plugin.
+    }
 
 })(jQuery, window, document);
