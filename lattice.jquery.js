@@ -84,6 +84,8 @@
             grid: [],
             gridImage: null,
             currentPath: [],
+            onMap: false,
+            compareNumbers: function (a, b) { return a - b; },
             active:{
                 row: null,
                 col: null
@@ -109,35 +111,21 @@
             },
             cropDict: {
                 middle : function(h){
-                    return {
-                        'top' : '50%',
-                        'margin-top' : (h/-2) + 'px'
-                    };
+                    return { "top" : "50%", "margin-top" : (h/-2) + "px" };
                 },
-                center : function(w){
-                    return {
-                        'left' : '50%',
-                        'margin-left' : (w/-2) + 'px'
-                    };
+                center : function(w){ 
+                    return { "left" : "50%", "margin-left" : (w/-2) + "px" };
                 },
-                top : {
-                    'top' : '0'
-                },
-                bottom : {
-                    'bottom' : '0'
-                },
-                left : {
-                    'left' : '0'
-                },
-                right : {
-                    'right' : '0'
-                }
+                top : { "top" : "0" },
+                bottom : { "bottom" : "0" },
+                left : { "left" : "0" },
+                right : { "right" : "0" }
             },
             keyDict: {
-                '37' : 'west',
-                '38' : 'north',
-                '39' : 'east',
-                '40' : 'south'
+                "37" : "west",
+                "38" : "north",
+                "39" : "east",
+                "40" : "south"
             },
             pathCache: {}
         };
@@ -153,7 +141,7 @@
         $(selector).toggleClass(config.thumbnailActiveClass);
     };
 
-    var updateActivePanel = function (row, col) {
+    var updateActiveCell = function (row, col) {
         config.active.row = row;
         config.active.col = col;
     };
@@ -208,7 +196,7 @@
         );
     };
 
-    var slideOn = function (path, usePause) {
+    var slideOn = function (path) {
 
         if (path.length > 1 || !path) {
 
@@ -303,8 +291,7 @@
                 }
             });
 
-        config.active.col = toNode.col;
-        config.active.row = toNode.row;
+        updateActiveCell(toNode.row, toNode.col);
 
         lattlog('Update on latt:');
         lattlog(config);
@@ -526,7 +513,6 @@
             'display': 'block'
         });
 
-
         /*
          * Wrap 'this' in a div with a class and set some styles. Adjusting
          * the 'left' css values, so need to set positioning.
@@ -544,18 +530,17 @@
 
         if (config.thumbnailMapEnabled) {
             //Add the thumbnail map
-            lattlog($('#lattice-wrap').length);
-            $(config.html.thumbnailMap).appendTo('#lattice-wrap')
+            $(config.html.thumbnailMap)
+                .appendTo('#lattice-wrap')
                 .width(function () {
-                    return ( config.thumbnailWidth +
-                        ( 2 * config.thumbnailSpacing ) ) *
-                        (config.gridCols + 1);
+                    config.thumbnailMapWidth =
+                        ( config.thumbnailWidth + ( 2 * config.thumbnailSpacing ) ) * (config.gridCols + 1);
+                    return config.thumbnailMapWidth;
                 }).height(function () {
-                    return ( config.thumbnailHeight +
-                        ( 2 * config.thumbnailSpacing ) )
-                        * (config.gridRows + 1);
+                    config.thumbnailMapHeight =
+                        ( config.thumbnailHeight + ( 2 * config.thumbnailSpacing ) ) * (config.gridRows + 1);
+                    return config.thumbnailMapHeight;
                 });
-            lattlog($('#lattice-wrap #lattice-thumbnail-map'));
         }
 
 
@@ -708,10 +693,7 @@
 
                 if (config.grid[r][c] && config.grid[r][c].travel) {
 
-                    /**
-                     * Define available paths for that cell based on the
-                     * travel data attribute
-                     */
+                    // Define available paths for that cell based on the travel data attribute
                     $.each(config.grid[r][c].travel.split(','),
                         function (index, value) {
                             config.grid[r][c][value] = true;
@@ -782,8 +764,7 @@
         var $active = $this.find(config.startSelector);
         $active.toggleClass('active');
 
-        config.active.row = parseInt($active.data('row'));
-        config.active.col = parseInt($active.data('col'));
+        updateActiveCell(parseInt($active.data('row')), parseInt($active.data('col')));
 
         if ($('[data-thumb=self]').length > 0 && config.html2Canvas) {
             html2canvas($("#container"), {
@@ -828,10 +809,9 @@
             'margin-left': ((config.active.col) * -100) + '%'
         });
 
-        updateActiveThumbnail(config.active.row, config.active.col);
 
+        updateActiveThumbnail(config.active.row, config.active.col);
         hideThumbnailMap();
-        hideAdjacentLinks();
 
         //Some more setup for the grid, now that all the cells are defined
         for (var rows = 0; rows <= config.gridRows; rows++) {
@@ -942,29 +922,31 @@
             path[0].directionTaken = direction;
             config.grid[row][col].directionTaken = direction;
             path.push(config.grid[row][col]);
-
-            lattlog(path);
-
-            slideOn(path, false);
-
-            return;
+            slideOn(path);
         })
 
-        $('.active').mouseenter(function () {
-            showAdjacentLinks();
-            showThumbnailMap();
-        });
+        $("#lattice-wrap").bind("mousemove", function(e){
+            var wrapOffset = $("#lattice-wrap").offset(),
+                mapPosition = $("#lattice-thumbnail-map").position();
 
-        $('.active').mouseleave(function () {
-            hideAdjacentLinks();
-        });
+            var mouseX = e.pageX - wrapOffset.left,
+                mouseY = e.pageY - wrapOffset.top;
 
-        $('#lattice-thumbnail-map').mouseenter(function () {
-            showThumbnailMap();
-        });
+            var bounds = [
+                    mapPosition.left,
+                    mouseX,
+                    mapPosition.left + config.thumbnailMapWidth
+                ].sort(config.compareNumbers).concat([
+                    mapPosition.top,
+                    mouseY,
+                    mapPosition.top + config.thumbnailMapHeight
+                ].sort(config.compareNumbers));
 
-        $('#lattice-thumbnail-map').mouseleave(function () {
-            hideThumbnailMap();
+            if(!(mouseX === bounds[1] && mouseY === bounds[5])){
+                showThumbnailMap();
+            } else {
+                hideThumbnailMap();
+            }
         });
 
         $('#lattice-wrap').resize(function () {
@@ -991,7 +973,7 @@
 
             lattlog(path);
 
-            slideOn(path, false);
+            slideOn(path);
 
             return;
         });
@@ -1009,7 +991,7 @@
             var path = solveGrid(
                 config.grid[config.active.row][config.active.col],
                 config.grid[coords[0]][coords[1]], config.grid);
-            slideOn(path, true);
+            slideOn(path);
         });
     };
 
