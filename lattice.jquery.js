@@ -43,54 +43,20 @@
                     '</div>',
                 thumbnailMap:       '<div id="lattice-thumbnail-map" ' +
                     'style="position:absolute;' +
-                    'bottom:15px;right:15px"></div>',
-                northArrow:         '<div style="left:50%;top:15px;' +
-                    'position:absolute;opacity:0.4;width:0;' +
-                    'height:0;' +
-                    'border-left:20px solid transparent;' +
-                    'border-right:20px solid transparent;' +
-                    'border-bottom:' +
-                    '20px solid rgb(167,161,161);"></div>',
-                eastArrow:          '<div style="top:50%;right:15px;' +
-                    'position:absolute;opacity:0.4;width:0;' +
-                    'height: 0;' +
-                    'border-top:20px solid transparent;' +
-                    'border-bottom: 20px solid transparent;' +
-                    'border-left: ' +
-                    '20px solid rgb(167, 161, 161);"></div>',
-                southArrow:         '<div style="left:50%;bottom:15px;' +
-                    'position:absolute;opacity:0.4;width:0;' +
-                    'height:0;border-left:' +
-                    '20px solid transparent;' +
-                    'border-right:20px solid transparent;' +
-                    'border-top:' +
-                    '20px solid rgb(167, 161, 161);"></div>',
-                westArrow:          '<div style="top:50%;left:15px;' +
-                    'position:absolute;opacity:0.4;width:0;' +
-                    'height:0;border-top:' +
-                    '20px solid transparent;border-bottom:' +
-                    '20px solid transparent; border-right:' +
-                    '20px solid rgb(167, 161, 161); "></div>'
+                    'bottom:15px;right:15px"></div>'
             },
             styles : {
             },
-            sliderWidth: null,
-            sliderHeight: null,
-            innerWidth: null,
-            innerHeight: null,
-            fullWindow: false
+            sliderWidth: "100%",
+            sliderHeight: "600px"
         },
         privates = { //Private configuration
             grid: [],
-            gridImage: null,
-            currentPath: [],
-            onMap: false,
             compareNumbers: function (a, b) { return a - b; },
             active:{
                 row: null,
                 col: null
             },
-            inMotion: false,
             compassDict: {
                 north : {
                     offsetR: -1,
@@ -420,7 +386,7 @@
     };
 
     var activateFullWindow = function () {
-        alert('asdf');
+        //TODO: Make this actually work or ditch this feature all together
         $("#lattice-wrap").css({
             'position': 'absolute',
             'width': window.innerWidth + 'px',
