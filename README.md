@@ -5,7 +5,7 @@ A jQuery plugin that creates a 2-dimensional HTML grid slider from cell elements
 
 #Demos
 
-- [Main testing area](http://chateloin.com/dev/lattice/): This is what I'm using to work on the plugin. It'll be broken from time to time, sorry.
+- The plugin's [page](http://mchateloin.github.io/lattice.js/) with a list of features. Documentation coming soon.
 
 #Issues
 
