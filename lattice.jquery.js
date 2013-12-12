@@ -24,8 +24,6 @@
             thumbnailWidth : 15,
             thumbnailHeight: 15,
             thumbnailSpacing: 3,
-            adjacentLinkHideDuration: 200,
-            adjacentLinkShowDuration: 700,
             thumbnailMapHideDuration: 200,
             thumbnailMapShowDuration: 700,
             usePathCaching: false,
@@ -59,18 +57,30 @@
             },
             compassDict: {
                 north : {
+                    toCss: function(row, col){
+                        return {"margin-top" : -((row - 1) * $("#lattice-wrap").height()) + "px"};
+                    },
                     offsetR: -1,
                     offsetC: 0
                 },
                 south : {
+                    toCss: function(row, col){
+                        return {"margin-top" : -((row + 1) * $("#lattice-wrap").height()) + 'px'};
+                    },
                     offsetR: 1,
                     offsetC: 0
                 },
                 east : {
+                    toCss: function(row, col){
+                        return {"margin-left" : -((col + 1) * 100) + "%"};
+                    },
                     offsetR: 0,
                     offsetC: 1
                 },
                 west : {
+                    toCss: function(row, col){
+                        return {"margin-left" : -((col - 1) * 100) + "%" };
+                    },
                     offsetR: 0,
                     offsetC: -1
                 }
@@ -112,17 +122,7 @@
         config.active.col = col;
     };
 
-    var hideAdjacentLinks = function () {
-        $('.lattice-adjacent-link').hide(config.adjacentLinkHideDuration);
-    };
-
-    var showAdjacentLinks = function () {
-        return;
-        $('.lattice-adjacent-link').show(config.adjacentLinkShowDuration);
-    };
-
     var hideThumbnailMap = function () {
-        if (config.fullWindow) return;
         $('#lattice-thumbnail-map').hide(config.thumbnailMapHideDuration);
     };
 
@@ -131,7 +131,7 @@
             .css('display', 'inline');
     };
 
-    var shallowMerge = function () {
+    var extendShallow = function () {
         for (var i = 1; i < arguments.length; i++) {
             for (var prop in arguments[i]) {
                 if (arguments[i].hasOwnProperty(prop)) {
@@ -156,7 +156,7 @@
 
     var getCropStyles = function (cropOption, $reference) {
         var optionPair = cropOption.split('-');
-        return shallowMerge(
+        return extendShallow(
             cropPositionToStyle(optionPair[0], $reference.height() || $reference[0].naturalHeight || $reference[0].src.height),
             cropPositionToStyle(optionPair[1], $reference.width() || $reference[0].naturalWidth || $reference[0].src.width)
         );
@@ -208,59 +208,15 @@
         config.inMotion = false;
     };
 
-    var translateDirectionToCss = function (direction, row, col) {
-        var translation = {};
-
-        if (direction === 'north' || direction === 'south') {
-            translation.prop = 'margin-top';
-            if (direction === 'north') {
-                translation.val = -((row - 1) * $('#lattice-wrap').height()) + 'px';
-            } else {
-                translation.val = -((row + 1) * $('#lattice-wrap').height()) + 'px';
-            }
-        } else {
-            translation.prop = 'margin-left';
-            if (direction === 'west') {
-                translation.val = -((col - 1) * 100) + '%';
-            } else {
-                translation.val = -((col + 1) * 100) + '%';
-            }
-        }
-
-        return translation;
-    };
-
-    //TODO: Refactor this
     var slideTo = function (fromNode, toNode, prevNode, isAdjacentToDestination) {
-
-        var $current = fromNode.element,
-            $target = toNode.element,
-            easing = isAdjacentToDestination ?
-                config.adjacentEasing : config.nonAdjacentEasing,
-            animAfter = function () {
-                if (isAdjacentToDestination) {
-                    showAdjacentLinks();
-                }
-            },
-            animCss = translateDirectionToCss(fromNode.directionTaken,
-                fromNode.row, fromNode.col);
-
-        hideAdjacentLinks();
-
-        var animOptions = {};
-        animOptions[animCss.prop] = animCss.val;
-
-        $('.lattice-container').animate(
-            animOptions, config.speed, easing, function () {
-                if (isAdjacentToDestination) {
-                    showAdjacentLinks();
-                }
-            });
-
-        updateActiveCell(toNode.row, toNode.col);
-
-        lattlog('Update on latt:');
-        lattlog(config);
+        var easing = isAdjacentToDestination ? config.adjacentEasing : config.nonAdjacentEasing,
+            row = fromNode.row,
+            col = fromNode.col,
+            direction = fromNode.directionTaken,
+            speed = config.speed;
+        $('.lattice-container').animate(config.compassDict[direction].toCss(row, col), speed, easing, function(){
+                updateActiveCell(row, col);
+        });
     };
 
     var parseStyle = function (value) {
@@ -331,7 +287,7 @@
         //Check if we're already at the goal
         if (start.row == end.row && start.col == end.col) {
             lattlog("We\'ve reached the end!");
-            path.push(shallowMerge(grid[start.row][start.col], {visited:true, directionTaken:"none"}));
+            path.push(extendShallow(grid[start.row][start.col], {visited:true, directionTaken:"none"}));
             return path;
         }
 
@@ -385,18 +341,6 @@
         }
     };
 
-    var activateFullWindow = function () {
-        //TODO: Make this actually work or ditch this feature all together
-        $("#lattice-wrap").css({
-            'position': 'absolute',
-            'width': window.innerWidth + 'px',
-            'height': $(window).height() + 'px',
-            'z-index': '9999',
-            'left': '0',
-            'right': '0'
-        });
-    };
-
     var addThumbnailToMap = function (customCss, thumbnail, clearValue, row, col) {
 
         if (row === null || col === null) return;
@@ -432,12 +376,6 @@
                 config.grid[row][col][propName] = props[propName];
             }
         }
-    };
-
-    var addAdjacentLink = function ($reference, direction) {
-        return $reference.append("<a class=\"lattice-adjacent-link\" href=\"#\"" + direction + "\">" +
-            config.html[direction + "Arrow"] + "</a>"
-        );
     };
 
     var lattlog = function (mixed) {
@@ -663,7 +601,6 @@
                     $.each(config.grid[r][c].travel.split(','),
                         function (index, value) {
                             config.grid[r][c][value] = true;
-                            addAdjacentLink($reference, value);
                         }
                     );
 
@@ -684,7 +621,6 @@
                             if ($(adjacentCellSelector).length != 0) {
                                 travelProp[direction] = true;
                                 setCellProperties(r, c, travelProp);
-                                addAdjacentLink($reference, direction);
                             } else {
                                 travelProp[direction] = false;
                                 setCellProperties(r, c, travelProp);
@@ -719,11 +655,6 @@
                 'height': 100 - (2 * config.gutter.number) + '%',
                 'top': config.gutter.number + '% '
             });
-        }
-
-
-        if (config.fullWindow) {
-            activateFullWindow();
         }
 
         //Set the active slide
@@ -807,10 +738,6 @@
 
         $(window).resize(function () {
 
-            if (config.fullWindow) {
-                activateFullWindow();
-            }
-
             for (var r = 0; r < config.grid.length; r++) {
                 for (var c = 0; c < config.grid[0].length; c++) {
                     if (config.grid[r][c]) {
@@ -874,8 +801,6 @@
             if (config.inMotion || config.keyDict[event.which] === undefined) {
                 return;
             }
-
-            lattlog('KEYPRESS DETECTED: ' + config.keyDict[event.which]);
 
             config.inMotion = true;
 
