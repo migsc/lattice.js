@@ -1,7 +1,6 @@
 /*!
  * Lattice v0.5
- * A jQuery plugin to assemble organize HTML elements in a grid fashion and do 
- * other neat things.
+ * A jQuery plugin to slide HTML elements in a grid like fashion
  * Original author: @chateloinus
  * Licensed under the MIT license
  */
@@ -96,12 +95,6 @@
                 bottom : { "bottom" : "0" },
                 left : { "left" : "0" },
                 right : { "right" : "0" }
-            },
-            keyDict: {
-                "37" : "west",
-                "38" : "north",
-                "39" : "east",
-                "40" : "south"
             },
             pathCache: {}
         };
@@ -795,26 +788,6 @@
             }
 
         }).trigger('resize');
-
-        $(window).keyup(function (event) {
-
-            if (config.inMotion || config.keyDict[event.which] === undefined) {
-                return;
-            }
-
-            config.inMotion = true;
-
-            var key = parseInt(event.which),
-                direction = config.keyDict[event.which];
-            var path = [config.grid[config.active.row][config.active.col]],
-                row = config.active.row + config.compassDict[direction].offsetR,
-                col = config.active.col + config.compassDict[direction].offsetC;
-
-            path[0].directionTaken = direction;
-            config.grid[row][col].directionTaken = direction;
-            path.push(config.grid[row][col]);
-            slideOn(path);
-        })
 
         $("#lattice-wrap").bind("mousemove", function(e){
             var wrapOffset = $("#lattice-wrap").offset(),
