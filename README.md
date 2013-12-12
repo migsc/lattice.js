@@ -11,11 +11,6 @@ A jQuery plugin that creates a 2-dimensional HTML grid slider from cell elements
 
 Currently, it's a buggy work in progress. Performance is still being worked on. Features are still being implemented. Suggestions are highly welcome: mchateloin@gmail.com
 
-#Upcoming Features
-
-This is what I plan to implement before v1.0
-- [ ] Ability to activate mouse, key, scroll, and swipe events for adjacent sliding.
-
 #Contact
 
 Miguel Chateloin
