@@ -13,6 +13,7 @@
         config = {},
         defaults = { //Public configuration
             startSelector: '>:first-child',
+            fullscreen: false,
             debug: false,
             speed : 1000,
             crop: 'center',
@@ -32,20 +33,17 @@
             thumbnailActiveClass: 'lattice-thumbnail-active',
             containerClass: 'lattice-container',
             html : {
-                wrapper:            '<div id="lattice-wrap" ' +
-                    'style="position:relative;' +
-                    'overflow:hidden;"></div>',
+                wrapper:            '<div id="lattice-wrap" style="position:relative;overflow:hidden;" allowfullscreen="true"></div>',
                 thumbnailDefault:   '<div class="lattice-thumbnail"></div>',
-                thumbnailEmpty:     '<div class="lattice-thumbnail-empty">' +
-                    '</div>',
-                thumbnailMap:       '<div id="lattice-thumbnail-map" ' +
-                    'style="position:absolute;' +
-                    'bottom:15px;right:15px"></div>'
+                thumbnailEmpty:     '<div class="lattice-thumbnail-empty"></div>',
+                thumbnailMap:       '<div id="lattice-thumbnail-map" style="position:absolute;bottom:15px;right:15px"></div>'
             },
             styles : {
             },
             sliderWidth: "100%",
             sliderHeight: "600px"
+        },
+        methods = { //Public methods
         },
         privates = { //Private configuration
             grid: [],
@@ -99,6 +97,29 @@
             pathCache: {}
         };
 
+
+    var activateFullScreen = function(){
+        var slider = $("#lattice-wrap");
+        if (slider[0].requestFullScreen) {
+            slider[0].requestFullScreen();
+        } else if (slider[0].mozRequestFullScreen) {
+            slider[0].mozRequestFullScreen();
+        } else if (slider[0].webkitRequestFullscreen) {
+            slider[0].webkitRequestFullscreen();
+        }
+
+    };
+
+    var deactivateFullScreen = function(){
+        var slider = $("#lattice-wrap");
+        if (slider[0].cancelFullscreen) {
+            slider[0].cancelFullscreen();
+        } else if (slider[0].mozRequestFullScreen) {
+            slider[0].mozCancelFullScreen();
+        } else if (slider[0].webkitRequestFullscreen) {
+            slider[0].webkitCancelFullscreen();
+        }
+    };
 
     var updateActiveThumbnail = function (row, col) {
         $('#lattice-thumbnail-map .' +
@@ -699,7 +720,6 @@
             'margin-left': ((config.active.col) * -100) + '%'
         });
 
-
         updateActiveThumbnail(config.active.row, config.active.col);
         hideThumbnailMap();
 
@@ -720,10 +740,6 @@
 
             }
         }
-
-
-        lattlog(config);
-
 
         /******************************
          * EVENTS
@@ -813,35 +829,6 @@
             }
         });
 
-        $('#lattice-wrap').resize(function () {
-            //TODO
-        });
-
-
-        $('.lattice-adjacent-link').click(function (e) {
-            e.preventDefault();
-            if (config.inMotion) return;
-            else config.inMotion = true;
-
-            var hrefValue = $(this).attr('href'),
-                path = [config.grid[config.active.row][config.active.col]];
-
-            var direction = hrefValue.replace('#', '');
-
-            var rOffset = config.compassDict[direction].offsetR,
-                cOffset = config.compassDict[direction].offsetC;
-
-            config.grid[config.active.row + rOffset][config.active.col + cOffset].directionTaken = direction;
-            path[0].directionTaken = direction;
-            path.push(config.grid[config.active.row + rOffset][config.active.col + cOffset]);
-
-            lattlog(path);
-
-            slideOn(path);
-
-            return;
-        });
-
         $('.lattice-grid-link').click(function (e) {
             e.preventDefault();
             if (config.inMotion) {
@@ -857,16 +844,26 @@
                 config.grid[coords[0]][coords[1]], config.grid);
             slideOn(path);
         });
-    };
 
-    $.fn[pluginName] = function(options){
+    }; //end init method
+
+    $.fn[pluginName] = function(methodOrOptions){
         return this.each(function () {
-            if (!$.data(this, 'plugin_' + pluginName)) {
-                $.data(this, 'plugin_' + pluginName,
-                    new Plugin( this, options ));
+            if (!$.data(this, "plugin_" + pluginName)) {
+
+                if ( methods[methodOrOptions] ) {
+                    return methods[ methodO1rOptions ].apply( this, Array.prototype.slice.call( arguments, 1 ));
+                } else if ( typeof methodOrOptions === "object" || ! methodOrOptions ) {
+                    // Default to "init"
+                    $.data(this, "plugin_" + pluginName, new Plugin( this, methodOrOptions ));
+                } else {
+                    $.error( "Method " +  methodOrOptions + " does not exist on jQuery." + pluginName );
+                }
+
             }
         });
-    }
+    };
+
 
 })(jQuery, window, document);
 

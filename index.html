@@ -182,8 +182,10 @@
 			</div><!-- END #container -->
 		</div>
 		<script>
-			jQuery(window).load(function(){
-				$("#container").lattice({
+			$(window).load(function(){
+                var slider = $("#container");
+
+                slider.lattice({
 					startSelector: ".slide-1",
 					transition: "slide",
 					speed : 500,
@@ -197,8 +199,12 @@
             		gutter: '0%',
             		crop: 'middle-center',
             		fullWindow: false,
-            		scale : 'width-height'
+            		scale : 'width-height',
+                    fullscreen: true
 				});
+
+                slider.lattice("doSomething");
+
 			});//doc ready
 		</script>
 		</div>
