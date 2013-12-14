@@ -11,12 +11,15 @@
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <script src="javascripts/jquery.min.js"></script>
+    <script src="javascripts/lattice.jquery.js"></script>
+    <script src="javascripts/html2canvas.js"></script>
   </head>
   <body>
     <div class="wrapper">
       <header>
         <h1>lattice.js</h1>
-        <p>A jQuery plugin that creates a 2-dimensional HTML grid slider from cell elements in a container.</p>
+        <p>A jQuery plugin that creates a responsive 2-dimensional slider for both HTML elements and images.</p>
 
         <p class="view"><a href="https://github.com/mchateloin/lattice.js">View the Project on GitHub <small>mchateloin/lattice.js</small></a></p>
 
@@ -28,37 +31,214 @@
         </ul>
       </header>
       <section>
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <h2>
+            <a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages">
+                <span class="octicon octicon-link"></span>
+            </a>
+            Not another slider plugin!
+        </h2>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+        <div id="plugin-example-1">
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+            <div class="thumbs" style="display:none;">
+                <img src="img/rose-red.png" id="rose-red"/>
+                <img src="img/rose-green.png" id="rose-green"/>
+                <img src="img/rose-blue.png" id="rose-blue"/>
+                <img src="img/rose-yellow.png" id="rose-yellow"/>
+                <img src="img/rose-purple.png" id="rose-purple"/>
+                <img src="img/rose-orange.png" id="rose-orange"/>
+            </div>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+            <div id="container">
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+                <img id="gunslinger-0" data-row="0" data-col="1" src="img/craig.jpg" data-thumb="self" data-crop="bottom-left" />
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+                <img id="gunslinger-0.5" data-row="0" data-col="0" src="img/mountain.jpg" data-thumb="self" />
 
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+                <div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self" data-crop="top-center">
+                    <div class="text-container">
+                        <h2>One</h2>
+                        <p>The man in black fled across the desert, and the gunslinger followed.</p>
+                    </div>
+                </div>
 
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+                <div id="gunslinger-2" class="slide slide-green" data-row="1" data-col="2" data-thumb="#rose-green">
+                    <div class="text-container">
+                        <h2>Two</h2>
+                        <p>The desert was the apotheosis of all deserts, huge, standing to the sky for what looked like eternity in all directions.</p>
+                    </div>
+                </div>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+                <div id="gunslinger-3" class="slide slide-blue" data-row="1" data-col="3" data-thumb="self">
+                    <div class="text-container">
+                        <h2>Three</h2>
+                        <p>It was white and blinding and waterless and without feature.</p>
+                    </div>
+                </div>
 
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+                <div id="gunslinger-4" class="slide slide-red" data-row="1" data-col="4" data-thumb="#rose-red">
+                    <div class="text-container">
+                        <h2>Four</h2>
+                        <p>An occasional tombstone sign pointed the way, for once the drifted track that cut its way through the thick crust of alkali had been a highway. Coaches and buckas had followed it</p>
+                    </div>
+                </div>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+                <div id="gunslinger-5" class="slide slide-yellow" data-row="2" data-col="4" data-thumb="#rose-yellow">
+                    <div class="text-container">
+                        <h2>Five</h2>
+                        <p>The world had moved on since then. The world had emptied.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-6" class="slide slide-green" data-row="3" data-col="4" data-thumb="self">
+                    <div class="text-container">
+                        <h2>Six</h2>
+                        <p>There would be water if God willed it, the oldtimers said. Water if God willed it, even in the desert. The gunslinger stood up, brushing his hands.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-7" class="slide slide-purple" data-row="3" data-col="3" data-thumb="#rose-purple">
+                    <div class="text-container">
+                        <h2>Seven</h2>
+                        <p>The gunslinger had been struck by a momentary dizziness, a kind of yawing sensation that made the entire world seem ephemeral, almost a thing that could be looked through.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-8" class="slide slide-orange" data-row="3" data-col="2" data-thumb="#rose-orange">
+                    <div class="text-container">
+                        <h2>Eight</h2>
+                        <p>He laid the flint down the steel rod and struck his spark to the dry, shredded grass, muttering the old and powerful nonsense words as he did: "Spark-a-dark, where's my sire? Will I lay me? Will I stay me? Bless this camp with fire."</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-9" class="slide slide-blue" data-row="2" data-col="2" data-thumb="#rose-blue">
+                    <div class="text-container">
+                        <h2>Nine</h2>
+                        <p>It passed and, like the world upon whose hide he walked, he moved on.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-10" class="slide slide-red" data-row="2" data-col="1" data-thumb="#rose-red">
+                    <div class="text-container">
+                        <h2>Ten</h2>
+                        <p>He passed the miles stolidly, not hurrying, not loafing. A hide waterbag was slung around his middle like a bloated sausage. It was almost full.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-11" class="slide slide-green" data-row="2" data-col="0" data-thumb="self" data-thumb="#rose-green">
+                    <div class="text-container">
+                        <h2>Eleven</h2>
+                        <p>He had progressed through the khef over many years, and had reached perhaps the fifth level.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-12" class="slide slide-purple" data-row="3" data-col="0"  data-thumb="#rose-purple">
+                    <div class="text-container">
+                        <h2>Twelve</h2>
+                        <p>His shirt, the no-color of rain or dust, was open at the throat, with a rawhide thong dangling loosely in hand-punched eyelets. His hat was gone.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-13" class="slide slide-orange" data-row="4" data-col="0" data-thumb="#rose-orange">
+                    <div class="text-container">
+                        <h2>Thirteen</h2>
+                        <p>Had he been a Manni holy man, he might not have even been thirsty; he could have watched his own body dehydrate with clinical, detached attention, watering its crevices and dark inner hollows only when his logic told him it must be done.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-14" class="slide slide-yellow" data-row="4" data-col="1" data-thumb="#rose-yellow">
+                    <div class="text-container">
+                        <h2>Fourteen</h2>
+                        <p>He was not a Manni, however, nor a follower of the Man Jesus, and considered himself in no way holy.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-15" class="slide slide-red" data-row="4" data-col="2">
+                    <div class="text-container">
+                        <h2>Fifteen</h2>
+                        <p>He was just an ordinary pilgrim, in other words, and all he could say with real certainty was that he was thirsty. And even so, he had no particular urge to drink.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-16" class="slide slide-blue" data-row="5" data-col="2">
+                    <div class="text-container">
+                        <h2>Sixteen</h2>
+                        <p>In a vague way, all this pleased him. It was what the country required, it was a thirsty country, and he had in his long life been nothing if not adaptable.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-17" class="slide slide-orange" data-row="6" data-col="2" data-thumb="self">
+                    <div class="text-container">
+                        <h2>Seventeen</h2>
+                        <p>Below the waterbag were his guns, carefully weighted to his hands; a plate had been added to each when they had come to him from his father, who had been lighter and not so tall.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-18" class="slide slide-purple" data-row="6" data-col="3">
+                    <div class="text-container">
+                        <h2>Eighteen</h2>
+                        <p>The two belts crisscrossed above his crotch. The holsters were oiled too deeply for even this Philistine sun to crack.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-19" class="slide slide-green" data-row="6" data-col="4">
+                    <div class="text-container">
+                        <h2>Nineteen</h2>
+                        <p>The stocks of the guns were sandalwood, yellow and finely grained. Rawhide tiedowns held the holsters loosely to his thighs, and they swung a bit with his step; they had rubbed away the bluing of his jeans (and thinned the cloth) in a pair of arcs that looked almost like smiles.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-20" class="slide slide-yellow" data-row="5" data-col="4">
+                    <div class="text-container">
+                        <h2>Twenty</h2>
+                        <p>The brass casings of the cartridges looped into the gunbelts heliographed in the sun. There were fewer now. The leather made subtle creaking noises.</p>
+                    </div>
+                </div>
+
+                <div id="gunslinger-21" class="slide slide-purple" data-row="4" data-col="4">
+                    <div class="text-container">
+                        <h2>Twenty One</h2>
+                        <p>His shirt, the no-color of rain or dust, was open at the throat, with a rawhide thong dangling loosely in hand-punched eyelets. His hat was gone. So was the horn he had once carried; gone for years, that horn, spilled from the hand of a dying friend, and he missed them both.</p>
+                    </div>
+                </div>
+
+                <img id="gunslinger-22" class="slide" data-row="4" data-col="3" data-thumb="self" src="img/roland-in-desert.png">
+            </div><!-- END #container -->
+            <div class="well">
+                <h4>Sure, it's pretty much just another slider but it's got some interesting features!</h4>
+                <ul>
+                    <li>Navigate slides in two dimensions.</li>
+                    <li>Generates a map of thumbnails representing each slide to navigate.</li>
+                    <li>Specify thumbnail images for each slide. Thumbnails can be resized.</li>
+                    <li>Restrict paths that can be followed.</li>
+                    <li>The slider and the slides themselves are responsive</li>
+                    <li>Use crop settings to crop to one of 9 areas of a slide as the slider decreases in width/height</li>
+                    <li>Can dynamically generate thumbnails via a canvas screenshot of a slide. Thanks @niklasvh for the html2canvas project!</li>
+                </ul>
+            </div>
+        </div>
+        <script>
+            jQuery(window).load(function(){
+                $("#container").lattice({
+                    startSelector: ".slide-1",
+                    transition: "slide",
+                    speed : 500,
+                    startSelector: "#gunslinger-0",
+                    fullScreen: false,
+                    thumbnailWidth : 45,
+                    thumbnailHeight: 45,
+                    debug: true,
+                    sliderWidth: '100%',
+                    sliderHeight: '400px',
+                    gutter: '0%',
+                    crop: 'middle-center',
+                    fullWindow: false,
+                    scale : 'width-height'
+                });
+            });//doc ready
+        </script>
+
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/mchateloin">mchateloin</a></p>
