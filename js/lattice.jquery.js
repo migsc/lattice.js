@@ -481,10 +481,10 @@
                      * positioning for the actual element.
                      */
                     var thumbData = $reference.data("thumb");
-                    if (thumbData === "self" && $reference.is("img")) {
+                    if (thumbData === "self" && $reference.is("images")) {
 
                         //The element itself is an image and will be thumbed
-                        var thumb = $("<img class=\"lattice-thumbnail\">");
+                        var thumb = $("<images class=\"lattice-thumbnail\">");
                         thumb.attr("src", $reference.attr("src"));
 
                         addThumbnailToMap({}, thumb, clearValue, r, c);
@@ -733,7 +733,7 @@
 
                         if (scale.indexOf("height") > -1 &&
                             scale.indexOf("width") > -1) {
-                            if ($element.is("img")) {
+                            if ($element.is("images")) {
                                 var widthE = config.grid[r][c].oWidth,
                                     heightE = config.grid[r][c].oHeight,
                                     widthI = $inner.width(),
