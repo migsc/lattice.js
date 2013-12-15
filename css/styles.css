@@ -245,7 +245,7 @@ p{
 .lattice-thumbnail-active{
     transition:background-color 2s;
     -webkit-transition:background-color 2s;
-    opacity: 0.7 !important;
+    opacity: 1.0 !important;
 }
 
 .lattice-thumbnail{
@@ -258,7 +258,7 @@ p{
 }
 
 #lattice-wrap{
-    background: url('../img/bg.jpg');
+    background: url('../images/bg.jpg');
     margin-left: auto;
     margin-right: auto;
 }

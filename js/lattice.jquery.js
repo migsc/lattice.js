@@ -47,6 +47,7 @@
         },
         privates = { //Private configuration
             grid: [],
+            inMotion: false,
             compareNumbers: function (a, b) { return a - b; },
             active:{
                 row: null,
@@ -122,12 +123,8 @@
     };
 
     var updateActiveThumbnail = function (row, col) {
-        $("#lattice-thumbnail-map ." +
-            config.thumbnailActiveClass).toggleClass(
-                config.thumbnailActiveClass);
-        var selector = "#lattice-thumbnail-map " +
-            ".lattice-grid-link#L" + row + "-" + col +
-            " .lattice-thumbnail";
+        $("#lattice-thumbnail-map ." + config.thumbnailActiveClass).toggleClass(config.thumbnailActiveClass);
+        var selector = "#lattice-thumbnail-map " + ".lattice-grid-link#L" + row + "-" + col + " .lattice-thumbnail";
         $(selector).toggleClass(config.thumbnailActiveClass);
     };
 
@@ -176,40 +173,40 @@
         );
     };
 
-    var slideOn = function (path) {
+    var slideOnPath = function (path){
 
-        if (path.length > 1 || !path) {
+        if (path.length > 1 || !path ) {
 
             var index = 0,
                 pause = config.speed;
             var isAdjacentToDestination = ( index == path.length - 2 );
 
-            updateActiveThumbnail(path[index + 1].row,
-                path[index + 1].col);
-            slideTo(path[index], path[index + 1], false,
+            updateActiveThumbnail( path[index+1].row,
+                path[index+1].col);
+            animateSlide( path[index], path[index+1], false,
                 isAdjacentToDestination);
             index++;
 
-            window.setInterval(function () {
-                if ((index + 1) == path.length) {
+            window.setInterval(function(){
+                if( (index+1) == path.length){
                     return;
                 }
 
-                if (index == 0) {
+                if( index == 0) {
                     pause = 0;
                 }
 
-                lattlog("Taking slide " + index + " in the " +
-                    path[index].directionTaken + " direction.")
+                lattlog('Taking slide ' + index + ' in the ' +
+                    path[index].directionTaken + ' direction.')
 
-                updateActiveThumbnail(path[index + 1].row,
-                    path[index + 1].col);
+                updateActiveThumbnail( path[index+1].row,
+                    path[index+1].col);
 
-                var prevNode = index > 0 ? path[index - 1] : false,
+                var prevNode = index > 0 ? path[index-1] : false,
                     isAdjacentToDestination = ( index == path.length -
                         2 );
 
-                slideTo(path[index], path[index + 1], prevNode,
+                animateSlide( path[index], path[index+1], prevNode,
                     isAdjacentToDestination);
 
                 index++;
@@ -222,16 +219,41 @@
         config.inMotion = false;
     };
 
-    var slideTo = function (fromNode, toNode, prevNode, isAdjacentToDestination) {
+    var animateSlide = function (fromNode, toNode, prevNode, isAdjacentToDestination){
+
         var easing = isAdjacentToDestination ? config.adjacentEasing : config.nonAdjacentEasing,
-            row = fromNode.row,
-            col = fromNode.col,
-            direction = fromNode.directionTaken,
-            speed = config.speed;
-        $(".lattice-container").animate(config.compassDict[direction].toCss(row, col), speed, easing, function(){
-                updateActiveCell(row, col);
-        });
+            animCss = translateDirectionToCss(fromNode.directionTaken, fromNode.row, fromNode.col),
+            animOptions = {};
+
+        animOptions[animCss.prop] = animCss.val;
+
+        $('.lattice-container').animate(animOptions, config.speed, easing);
+
+        config.active.col = toNode.col;
+        config.active.row = toNode.row;
     };
+
+    var translateDirectionToCss = function(direction, row, col){
+        var translation = {};
+
+        if(direction === 'north' || direction === 'south') {
+            translation.prop = 'margin-top';
+            if( direction === 'north'){
+                translation.val = -((row - 1) * $('#lattice-wrap').height()) + 'px';
+            } else {
+                translation.val = -((row + 1) * $('#lattice-wrap').height()) + 'px';
+            }
+        } else {
+            translation.prop = 'margin-left';
+            if( direction === 'west'){
+                translation.val = -((col - 1) * 100) + '%';
+            } else {
+                translation.val = -((col + 1) * 100) + '%';
+            }
+        }
+
+        return translation;
+    }
 
     var parseStyle = function (value) {
         if (value.indexOf("px") > -1) {
@@ -267,8 +289,7 @@
         var cacheIndex = start.cellName + "_" + end.cellName,
             path = [];
 
-        if (config.usePathCaching &&
-            config.pathCache.hasOwnProperty(cacheIndex)) {
+        if (config.usePathCaching && config.pathCache.hasOwnProperty(cacheIndex)) {
             return config.pathCache[cacheIndex];
         }
 
@@ -805,19 +826,20 @@
         });
 
         $(".lattice-grid-link").click(function (e) {
+
             e.preventDefault();
             if (config.inMotion) {
                 return;
-            } else {
-                config.inMotion = true;
             }
 
+            config.inMotion = true;
             var coords = $(this)[0].id.replace("L", "").split("-");
-
             var path = solveGrid(
                 config.grid[config.active.row][config.active.col],
-                config.grid[coords[0]][coords[1]], config.grid);
-            slideOn(path);
+                config.grid[coords[0]][coords[1]], config.grid
+            );
+
+            slideOnPath(path);
         });
 
     }; //end init method

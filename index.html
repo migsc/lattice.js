@@ -5,15 +5,15 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title>lattice.js by mchateloin</title>
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pygment_trac.css">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-    <script src="javascripts/jquery.min.js"></script>
-    <script src="javascripts/lattice.jquery.js"></script>
-    <script src="javascripts/html2canvas.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/lattice.jquery.js"></script>
+    <script src="js/html2canvas.js"></script>
   </head>
   <body>
     <div class="wrapper">
@@ -41,19 +41,19 @@
         <div id="plugin-example-1">
 
             <div class="thumbs" style="display:none;">
-                <img src="img/rose-red.png" id="rose-red"/>
-                <img src="img/rose-green.png" id="rose-green"/>
-                <img src="img/rose-blue.png" id="rose-blue"/>
-                <img src="img/rose-yellow.png" id="rose-yellow"/>
-                <img src="img/rose-purple.png" id="rose-purple"/>
-                <img src="img/rose-orange.png" id="rose-orange"/>
+                <img src="images/rose-red.png" id="rose-red"/>
+                <img src="images/rose-green.png" id="rose-green"/>
+                <img src="images/rose-blue.png" id="rose-blue"/>
+                <img src="images/rose-yellow.png" id="rose-yellow"/>
+                <img src="images/rose-purple.png" id="rose-purple"/>
+                <img src="images/rose-orange.png" id="rose-orange"/>
             </div>
 
             <div id="container">
 
-                <img id="gunslinger-0" data-row="0" data-col="1" src="img/craig.jpg" data-thumb="self" data-crop="bottom-left" />
+                <img id="gunslinger-0" data-row="0" data-col="1" src="images/craig.jpg" data-thumb="self" data-crop="bottom-left" />
 
-                <img id="gunslinger-0.5" data-row="0" data-col="0" src="img/mountain.jpg" data-thumb="self" />
+                <img id="gunslinger-0.5" data-row="0" data-col="0" src="images/mountain.jpg" data-thumb="self" />
 
 
                 <div id="gunslinger-1" class="slide slide-yellow" data-row="0" data-col="2"  data-thumb="self" data-crop="top-center">
@@ -203,7 +203,7 @@
                     </div>
                 </div>
 
-                <img id="gunslinger-22" class="slide" data-row="4" data-col="3" data-thumb="self" src="img/roland-in-desert.png">
+                <img id="gunslinger-22" class="slide" data-row="4" data-col="3" data-thumb="self" src="images/roland-in-desert.png">
             </div><!-- END #container -->
             <div class="well">
                 <h4>Sure, it's pretty much just another slider but it's got some interesting features!</h4>
@@ -212,14 +212,15 @@
                     <li>Generates a map of thumbnails representing each slide to navigate.</li>
                     <li>Specify thumbnail images for each slide. Thumbnails can be resized.</li>
                     <li>Restrict paths that can be followed.</li>
-                    <li>The slider and the slides themselves are responsive</li>
-                    <li>Use crop settings to crop to one of 9 areas of a slide as the slider decreases in width/height</li>
+                    <li>The slider and the slides themselves are responsive.</li>
+                    <li>Use crop settings to crop to one of 9 areas of a slide as the slider decreases in width/height.</li>
                     <li>Can dynamically generate thumbnails via a canvas screenshot of a slide. Thanks @niklasvh for the html2canvas project!</li>
+                    <li>Has a fullscreen mode.</li>
                 </ul>
             </div>
         </div>
         <script>
-            jQuery(window).load(function(){
+            $(window).load(function(){
                 $("#container").lattice({
                     startSelector: ".slide-1",
                     transition: "slide",
@@ -245,7 +246,7 @@
         <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+    <script src="js/scale.fix.js"></script>
     
   </body>
 </html>
