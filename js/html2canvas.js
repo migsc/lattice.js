@@ -1784,7 +1784,7 @@ _html2canvas.Parse = function (images, options) {
     }
 
     var isImage = content.substr( 0, 3 ) === 'url',
-    elps = document.createElement( isImage ? 'img' : 'span' );
+    elps = document.createElement( isImage ? 'images' : 'span' );
 
     elps.className = pseudoHide + "-before " + pseudoHide + "-after";
 
@@ -2025,7 +2025,7 @@ _html2canvas.Parse = function (images, options) {
         if ((image = loadImage(element.getAttribute('src')))) {
           renderImage(ctx, element, image, bounds, borders);
         } else {
-          h2clog("html2canvas: Error loading <img>:" + element.getAttribute('src'));
+          h2clog("html2canvas: Error loading <images>:" + element.getAttribute('src'));
         }
         break;
       case "INPUT":
@@ -2445,7 +2445,7 @@ _html2canvas.Preload = function( options ) {
               }
               images.numLoaded++;
               images.numFailed++;
-              h2clog("html2canvas: Cleaned up failed img: '" + src + "' Steps: " + images.numLoaded + " / " + images.numTotal);
+              h2clog("html2canvas: Cleaned up failed images: '" + src + "' Steps: " + images.numLoaded + " / " + images.numTotal);
             }
           }
         }
@@ -2483,7 +2483,7 @@ _html2canvas.Preload = function( options ) {
   getImages(element);
 
   h2clog('html2canvas: Preload: Finding images');
-  // load <img> images
+  // load <images> images
   for (i = 0; i < imgLen; i+=1){
     methods.loadImage( domImages[i].getAttribute( "src" ) );
   }
