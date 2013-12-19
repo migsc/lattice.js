@@ -196,8 +196,8 @@
                     pause = 0;
                 }
 
-                lattlog('Taking slide ' + index + ' in the ' +
-                    path[index].directionTaken + ' direction.')
+                lattlog("Taking slide " + index + " in the " +
+                    path[index].directionTaken + " direction.")
 
                 updateActiveThumbnail( path[index+1].row,
                     path[index+1].col);
@@ -227,7 +227,7 @@
 
         animOptions[animCss.prop] = animCss.val;
 
-        $('.lattice-container').animate(animOptions, config.speed, easing);
+        $(".lattice-container").animate(animOptions, config.speed, easing);
 
         config.active.col = toNode.col;
         config.active.row = toNode.row;
@@ -236,19 +236,19 @@
     var translateDirectionToCss = function(direction, row, col){
         var translation = {};
 
-        if(direction === 'north' || direction === 'south') {
-            translation.prop = 'margin-top';
-            if( direction === 'north'){
-                translation.val = -((row - 1) * $('#lattice-wrap').height()) + 'px';
+        if(direction === "north" || direction === "south") {
+            translation.prop = "margin-top";
+            if( direction === "north"){
+                translation.val = -((row - 1) * $("#lattice-wrap").height()) + "px";
             } else {
-                translation.val = -((row + 1) * $('#lattice-wrap').height()) + 'px';
+                translation.val = -((row + 1) * $("#lattice-wrap").height()) + "px";
             }
         } else {
-            translation.prop = 'margin-left';
-            if( direction === 'west'){
-                translation.val = -((col - 1) * 100) + '%';
+            translation.prop = "margin-left";
+            if( direction === "west"){
+                translation.val = -((col - 1) * 100) + "%";
             } else {
-                translation.val = -((col + 1) * 100) + '%';
+                translation.val = -((col + 1) * 100) + "%";
             }
         }
 
@@ -344,12 +344,12 @@
 
                 }
 
-                lattlog('Closed.');
+                lattlog("Closed.");
             }
         }
 
-        lattlog('Reached a dead end.');
-        //If we get here, it's a dead end!
+        lattlog("Reached a dead end.");
+        //If we get here, it"s a dead end!
         return null;
     };
 
