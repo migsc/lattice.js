@@ -9,12 +9,13 @@
 
     "use strict";
 
+    var ID_OR_CLASS_PREFIX = /\.|#/;
+
     var pluginName = "lattice",
         config = {},
         defaults = { //Public configuration
             startSelector: ">:first-child",
             fullscreen: false,
-            debug: false,
             speed : 1000,
             crop: "center",
             scale: "none",
@@ -29,16 +30,15 @@
             usePathCaching: false,
             selfThumbedCells: [],
             gutter: "1%",
-            html2Canvas: false,
-            thumbnailActiveClass: "lattice-thumbnail-active",
-            containerClass: "lattice-container",
-            html : {
-                wrapper:            "<div id=\"lattice-wrap\" style=\"position:relative;overflow:hidden;\" allowfullscreen=\"true\"></div>",
-                thumbnailDefault:   "<div class=\"lattice-thumbnail\"></div>",
-                thumbnailEmpty:     "<div class=\"lattice-thumbnail-empty\"></div>",
-                thumbnailMap:       "<div id=\"lattice-thumbnail-map\" style=\"position:absolute;bottom:15px;right:15px\"></div>"
-            },
-            styles : {
+            interruptMotion: false,
+            selectors: {
+                wrapper: "#lattice-wrap",
+                gridLink: ".lattice-grid-link",
+                thumbnail: ".lattice-thumbnail",
+                thumbnailEmpty: ".lattice-thumbnail-empty",
+                thumbnailActive: ".lattice-thumbnail-active",
+                thumbnailMap: "#lattice-thumbnail-map",
+                container: ".lattice-container"
             },
             sliderWidth: "100%",
             sliderHeight: "600px"
@@ -55,39 +55,59 @@
             },
             compassDict: {
                 north : {
-                    toCss: function(row, col){
-                        return {"margin-top" : -((row - 1) * $("#lattice-wrap").height()) + "px"};
+                    dimension: "row",
+                    css: {
+                        property:"margin-top",
+                        units: "px",
+                        multiplier: function(){ return $("#lattice-wrap").height(); }
                     },
-                    offsetR: -1,
-                    offsetC: 0
+                    offset: {
+                        row: -1,
+                        col: 0
+                    }
                 },
                 south : {
-                    toCss: function(row, col){
-                        return {"margin-top" : -((row + 1) * $("#lattice-wrap").height()) + "px"};
+                    dimension: "row",
+                    css: {
+                        property:"margin-top",
+                        units: "px",
+                        multiplier: function(){ return $("#lattice-wrap").height(); }
                     },
-                    offsetR: 1,
-                    offsetC: 0
+                    offset: {
+                        row: 1,
+                        col: 0
+                    }
                 },
                 east : {
-                    toCss: function(row, col){
-                        return {"margin-left" : -((col + 1) * 100) + "%"};
+                    dimension: "col",
+                    css: {
+                        property:"margin-left",
+                        units: "%",
+                        multiplier: function(){ return 100; }
                     },
-                    offsetR: 0,
-                    offsetC: 1
+                    offset: {
+                        row: 0,
+                        col: 1
+                    }
                 },
                 west : {
-                    toCss: function(row, col){
-                        return {"margin-left" : -((col - 1) * 100) + "%" };
+                    dimension: "col",
+                    css: {
+                        property:"margin-left",
+                        units: "%",
+                        multiplier: function(){ return 100; }
                     },
-                    offsetR: 0,
-                    offsetC: -1
+                    offset: {
+                        row: 0,
+                        col: -1
+                    }
                 }
             },
             cropDict: {
                 middle : function(h){
                     return { "top" : "50%", "margin-top" : (h/-2) + "px" };
                 },
-                center : function(w){ 
+                center : function(w){
                     return { "left" : "50%", "margin-left" : (w/-2) + "px" };
                 },
                 top : { "top" : "0" },
@@ -123,9 +143,13 @@
     };
 
     var updateActiveThumbnail = function (row, col) {
-        $("#lattice-thumbnail-map ." + config.thumbnailActiveClass).toggleClass(config.thumbnailActiveClass);
-        var selector = "#lattice-thumbnail-map " + ".lattice-grid-link#L" + row + "-" + col + " .lattice-thumbnail";
-        $(selector).toggleClass(config.thumbnailActiveClass);
+        $(config.selectors.thumbnailMap + " " + config.selectors.thumbnailActive)
+            .toggleClass(config.selectors.thumbnailActive.replace(ID_OR_CLASS_PREFIX, ""));
+        var selector =
+            config.selectors.thumbnailMap + " " +
+            config.selectors.gridLink +
+            "#L" + row + "-" + col + " " + config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, "");
+        $(selector).toggleClass(config.selectors.thumbnailActive.replace(ID_OR_CLASS_PREFIX, ""));
     };
 
     var updateActiveCell = function (row, col) {
@@ -134,11 +158,11 @@
     };
 
     var hideThumbnailMap = function () {
-        $("#lattice-thumbnail-map").hide(config.thumbnailMapHideDuration);
+        $(config.selectors.thumbnailMap).hide(config.thumbnailMapHideDuration);
     };
 
     var showThumbnailMap = function () {
-        $("#lattice-thumbnail-map").show(config.thumbnailMapShowDuration)
+        $(config.selectors.thumbnailMap).show(config.thumbnailMapShowDuration)
             .css("display", "inline");
     };
 
@@ -173,99 +197,67 @@
         );
     };
 
+    var toCss = function(direction, row, col){
+        var result = {},
+            cd = config.compassDict[direction];
+        var dimensionValue = cd.dimension === "row" ? row : col;
+        result[cd.css.property] = -((dimensionValue + cd.offset[cd.dimension]) * cd.css.multiplier()) + cd.css.units;
+        return result;
+    };
+
     var slideOnPath = function (path){
-
-        if (path.length > 1 || !path ) {
-
-            var index = 0,
-                pause = config.speed;
-            var isAdjacentToDestination = ( index == path.length - 2 );
-
-            updateActiveThumbnail( path[index+1].row,
-                path[index+1].col);
-            animateSlide( path[index], path[index+1], false,
-                isAdjacentToDestination);
-            index++;
-
-            window.setInterval(function(){
-                if( (index+1) == path.length){
-                    return;
-                }
-
-                if( index == 0) {
-                    pause = 0;
-                }
-
-                lattlog("Taking slide " + index + " in the " +
-                    path[index].directionTaken + " direction.")
-
-                updateActiveThumbnail( path[index+1].row,
-                    path[index+1].col);
-
-                var prevNode = index > 0 ? path[index-1] : false,
-                    isAdjacentToDestination = ( index == path.length -
-                        2 );
-
-                animateSlide( path[index], path[index+1], prevNode,
-                    isAdjacentToDestination);
-
-                index++;
-
-            }, pause);
-
+        if (path.length <= 1){
+            config.inMotion = false;
+            return;
         }
 
+        var index = 1,
+            isAdjacentToDestination = ( config.speed === path.length - 2 );
 
-        config.inMotion = false;
+        updateActiveThumbnail( path[index].row, path[index].col);
+        animateSlide( path[index-1], path[index], false, isAdjacentToDestination);
+
+        config.interval = window.setInterval(function(){
+
+            if( (index+1) === path.length){
+                clearInterval(config.interval);
+                config.inMotion = false;
+                return;
+            }
+
+            var prevNode = index > 0 ? path[index-1] : false,
+                isAdjacentToDestination = ( index === path.length - 2 );
+
+            updateActiveThumbnail( path[index+1].row, path[index+1].col);
+            animateSlide( path[index], path[index+1], prevNode, isAdjacentToDestination);
+            index++;
+
+        }, config.speed);
+
     };
 
     var animateSlide = function (fromNode, toNode, prevNode, isAdjacentToDestination){
 
         var easing = isAdjacentToDestination ? config.adjacentEasing : config.nonAdjacentEasing,
-            animCss = translateDirectionToCss(fromNode.directionTaken, fromNode.row, fromNode.col),
-            animOptions = {};
+            animOptions = toCss(fromNode.directionTaken, fromNode.row, fromNode.col);
 
-        animOptions[animCss.prop] = animCss.val;
-
-        $(".lattice-container").animate(animOptions, config.speed, easing);
+        $(config.selectors.container).animate(animOptions, config.speed, easing);
 
         config.active.col = toNode.col;
         config.active.row = toNode.row;
     };
 
-    var translateDirectionToCss = function(direction, row, col){
-        var translation = {};
-
-        if(direction === "north" || direction === "south") {
-            translation.prop = "margin-top";
-            if( direction === "north"){
-                translation.val = -((row - 1) * $("#lattice-wrap").height()) + "px";
-            } else {
-                translation.val = -((row + 1) * $("#lattice-wrap").height()) + "px";
-            }
-        } else {
-            translation.prop = "margin-left";
-            if( direction === "west"){
-                translation.val = -((col - 1) * 100) + "%";
-            } else {
-                translation.val = -((col + 1) * 100) + "%";
-            }
-        }
-
-        return translation;
-    }
-
     var parseStyle = function (value) {
         if (value.indexOf("px") > -1) {
             return {
-                number: parseInt(value.replace("px", "")),
+                number: parseInt(value.replace("px", ""), 10),
                 type: "px"
             };
         }
 
         if (value.indexOf("%") > -1) {
             return {
-                number: parseInt(value.replace("%", "")),
+                number: parseInt(value.replace("%", ""), 10),
                 type: "%"
             };
         }
@@ -277,25 +269,30 @@
     };
 
     var getMaxData = function ($parent, name) {
-        return  $parent.children().map(function () {
-            return parseInt($(this).data(name));
-        }).get().sort(function (a, b) {
+        return  $parent
+            .children()
+            .map(function () {
+                return parseInt($(this).data(name), 10);
+            })
+            .get()
+            .sort(function (a, b) {
                 return b - a;
             })[0];
     };
 
-    var solveGrid = function (start, end, grid) {
-
+    var getPath = function (start, end, grid) {
         var cacheIndex = start.cellName + "_" + end.cellName,
             path = [];
+        config.inMotion = true;
 
         if (config.usePathCaching && config.pathCache.hasOwnProperty(cacheIndex)) {
+            console.log(config.pathCache[cacheIndex]);
             return config.pathCache[cacheIndex];
         }
-
+        console.log(config.pathCache[cacheIndex]);
         resetGridVisits();
 
-        if (depthFirstSearch(start, end, grid, path) != null) {
+        if (depthFirstSearch(start, end, grid, path) !== null) {
             config.pathCache[cacheIndex] = path.reverse();
             return path;
         }
@@ -306,7 +303,7 @@
     var depthFirstSearch = function (start, end, grid, path) {
 
         //Check if we're already at the goal
-        if (start.row == end.row && start.col == end.col) {
+        if (start.row === end.row && start.col === end.col) {
             path.push(extendShallow(grid[start.row][start.col], {visited:true, directionTaken:"none"}));
             return path;
         }
@@ -320,12 +317,14 @@
                 west: start.col > end.col
             };
 
-        for(var direction in biases)
-            if(biases.hasOwnProperty(direction))
+        for(var direction in biases){
+            if(biases.hasOwnProperty(direction)){
                 checkOrder[ biases[direction] ? "unshift" : "push" ](direction);
+            }
+        }
 
         for(var i = 0; i < checkOrder.length; i++){
-            var direction = checkOrder[i];
+            direction = checkOrder[i];
             if (generalCompass.hasOwnProperty(direction) && generalCompass[direction]) {
 
                 lattlog(generalCompass[direction]);
@@ -336,7 +335,7 @@
 
                     lattlog("Room is open. Going " + direction + ".");
                     grid[start.row][start.col].visited = true;
-                    if (depthFirstSearch(generalCompass[direction], end, grid, path) != null) {
+                    if (depthFirstSearch(generalCompass[direction], end, grid, path) !== null) {
                         grid[start.row][start.col].directionTaken = direction;
                         path.push(grid[start.row][start.col]);
                         return path;
@@ -363,18 +362,23 @@
 
     var addThumbnailToMap = function (customCss, thumbnail, clearValue, row, col) {
 
-        if (row === null || col === null) return;
+        if (row === null || col === null) {
+            return;
+        }
 
         var idValue = "id=\"L" + row + "-" + col + "\" ";
 
-        $(thumbnail).appendTo("#lattice-thumbnail-map").css({
-            "clear": clearValue,
-            "display": "block",
-            "float": "left",
-            "width": config.thumbnailWidth + "px",
-            "height": config.thumbnailHeight + "px",
-            "margin": config.thumbnailSpacing + "px"
-        }).css(customCss).wrap("<a class=\"lattice-grid-link\" href=\"#\"" + idValue + " ></a>");
+        $(thumbnail)
+            .appendTo(config.selectors.thumbnailMap)
+            .css(extendShallow({
+                clear: clearValue,
+                display: "block",
+                float: "left",
+                width: config.thumbnailWidth + "px",
+                height: config.thumbnailHeight + "px",
+                margin: config.thumbnailSpacing + "px"
+            }, customCss))
+            .wrap("<a class=\"" + config.selectors.gridLink.replace(ID_OR_CLASS_PREFIX, "") + "\" href=\"#\"" + idValue + " ></a>");
     };
 
     var setCellProperties = function (row, col, props) {
@@ -397,7 +401,7 @@
 
     var lattlog = function (mixed) {
         if (config.debug && window.console && window.console.log) {
-            console.log(mixed);
+            window.console.log(mixed);
         }
     };
 
@@ -438,30 +442,47 @@
          * Wrap "this" in a div with a class and set some styles. Adjusting
          * the "left" css values, so need to set positioning.
          */
-        $this.css({
-            "position": "relative",
-            "width": (config.gridCols + 1) * 100 + "%",
-            "height": (config.gridRows + 1) * 100 + "%"
-        }).addClass(config.containerClass).wrap(config.html.wrapper);
+        $this
+            .css({
+                "position": "relative",
+                "width": (config.gridCols + 1) * 100 + "%",
+                "height": (config.gridRows + 1) * 100 + "%"
+            }).addClass(config.selectors.container.replace(ID_OR_CLASS_PREFIX, ""))
+            .wrap(
+                "<div id=\"" + config.selectors.wrapper.replace(ID_OR_CLASS_PREFIX, "") + "\"></div>"
+            );
 
-        $("#lattice-wrap").css({
-            "width": config.sliderWidth,
-            "height": config.sliderHeight
+        $(config.selectors.wrapper).css({
+            position: "relative",
+            overflow: "hidden",
+            width: config.sliderWidth,
+            height: config.sliderHeight
+        }).attr({
+            allowfullscreen: true
         });
 
         if (config.thumbnailMapEnabled) {
             //Add the thumbnail map
-            $(config.html.thumbnailMap)
-                .appendTo("#lattice-wrap")
-                .width(function () {
-                    config.thumbnailMapWidth =
-                        ( config.thumbnailWidth + ( 2 * config.thumbnailSpacing ) ) * (config.gridCols + 1);
-                    return config.thumbnailMapWidth;
-                }).height(function () {
-                    config.thumbnailMapHeight =
-                        ( config.thumbnailHeight + ( 2 * config.thumbnailSpacing ) ) * (config.gridRows + 1);
-                    return config.thumbnailMapHeight;
-                });
+            $("<div></div>")
+                .attr({
+                    id: config.selectors.thumbnailMap.replace(ID_OR_CLASS_PREFIX, "")
+                })
+                .css({
+                    position: "absolute",
+                    bottom: "15px",
+                    right: "15px",
+                    width: function () {
+                        config.thumbnailMapWidth =
+                            ( config.thumbnailWidth + ( 2 * config.thumbnailSpacing ) ) * (config.gridCols + 1);
+                        return config.thumbnailMapWidth;
+                    },
+                    height: function () {
+                        config.thumbnailMapHeight =
+                            ( config.thumbnailHeight + ( 2 * config.thumbnailSpacing ) ) * (config.gridRows + 1);
+                        return config.thumbnailMapHeight;
+                    }
+                })
+                .appendTo(config.selectors.wrapper);
         }
 
 
@@ -478,7 +499,7 @@
                 // Cache the reference to the cell"s element
                 var $reference = $this.find("[data-row=" + r + "][data-col=" +
                         c + "]"),
-                    clearValue = ( c == config.gridCols ) ?
+                    clearValue = ( c === config.gridCols ) ?
                         "right" : "none",
                     selfThumbed = false;
 
@@ -489,10 +510,8 @@
                      * use the default empty placeholder
                      */
                     setCellProperties(r, c, false);
-                    addThumbnailToMap({
-                            "background": "none"
-                        }, config.html.thumbnailEmpty, clearValue, r,
-                        c);
+                    addThumbnailToMap({ "background": "none"},
+                        "<div class=\"" + config.selectors.thumbnailEmpty.replace(ID_OR_CLASS_PREFIX, "") + "\"></div>", clearValue, r, c);
 
                 } else {
 
@@ -505,26 +524,10 @@
                     if (thumbData === "self" && $reference.is("images")) {
 
                         //The element itself is an image and will be thumbed
-                        var thumb = $("<images class=\"lattice-thumbnail\">");
+                        var thumb = $("<images class=\"" + config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, "") + "\">");
                         thumb.attr("src", $reference.attr("src"));
 
                         addThumbnailToMap({}, thumb, clearValue, r, c);
-
-                    } else if (thumbData === "self" && config.html2Canvas) {
-
-                        //NOT an image so it will be thumbed into a canvas
-                        addThumbnailToMap({
-                                "background-repeat": "no-repeat",
-                                "background-size": ((config.gridCols + 1) * config.thumbnailWidth ) +
-                                    "px " +
-                                    ((config.gridRows + 1) * config.thumbnailHeight) +
-                                    "px",
-                                "background-position": ( -c * config.thumbnailWidth ) + "px " +
-                                    ( -r * config.thumbnailHeight) + "px",
-                                "background-color": "#fffff"
-                            }, config.html.thumbnailDefault, clearValue, r,
-                            c);
-                        selfThumbed = true;
 
                     } else if (thumbData && thumbData !== "self") {
 
@@ -532,17 +535,17 @@
                         //TODO: Make this happen
                         addThumbnailToMap({},
                             $("<div>").append(
-                                $(thumbData).addClass("lattice-thumbnail")
+                                $(thumbData)
+                                    .addClass(config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, ""))
                                     .clone()
                             ).html(),
                             clearValue, r, c);
                     } else {
 
                         //No thumb-data attr so use the default thumb
-                        addThumbnailToMap({
-                                "background-color": "#ffffff"
-                            }, config.html.thumbnailDefault, clearValue, r,
-                            c);
+                        addThumbnailToMap({ "background-color": "#ffffff" },
+                            "<div class=\"" + config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, "") + "\"></div>",
+                            clearValue, r, c );
                     }
 
                     var cropData = $reference.data("crop"),
@@ -552,8 +555,8 @@
                         element: $reference,
                         cellName: r + "x" + c,
                         html: $("<div>").append($reference.clone()).html(),
-                        row: parseInt($reference.data("row")),
-                        col: parseInt($reference.data("col")),
+                        row: parseInt($reference.data("row"), 10),
+                        col: parseInt($reference.data("col"), 10),
                         travel: $reference.data("travel"),
                         visited: false,
                         north: false,
@@ -573,16 +576,16 @@
 
                     var cellStyling =
                             "width:" + (1 / (config.gridCols + 1)) * 100 + "%;" +
-                                "height:" + (1 / (config.gridRows + 1)) * 100 + "%;" +
-                                "position:absolute;" +
-                                "left:" + (c / (config.gridCols + 1)) * 100 + "%;" +
-                                "top:" + (r / (config.gridRows + 1)) * 100 + "%;",
+                            "height:" + (1 / (config.gridRows + 1)) * 100 + "%;" +
+                            "position:absolute;" +
+                            "left:" + (c / (config.gridCols + 1)) * 100 + "%;" +
+                            "top:" + (r / (config.gridRows + 1)) * 100 + "%;",
                         innerCellStyling =
                             "position:relative;" +
-                                "overflow:hidden;" +
-                                "height:100%;" +
-                                "width:100%;" +
-                                "margin:0";
+                            "overflow:hidden;" +
+                            "height:100%;" +
+                            "width:100%;" +
+                            "margin:0";
 
                     $reference.wrap(
                         "<div id=\"cell" + r + "-" + c + "\" class=\"lattice-cell\" style=\"" + cellStyling + "\">" +
@@ -592,6 +595,7 @@
 
                     var scale = config.grid[r][c].scale;
                     if (scale.indexOf("height") > -1 && scale.indexOf("width") > -1) {
+
                     } else if (scale.indexOf("width") > -1) {
                         $reference.css({
                             "width": "100%",
@@ -611,24 +615,22 @@
                 if (config.grid[r][c] && config.grid[r][c].travel) {
 
                     // Define available paths for that cell based on the travel data attribute
-                    $.each(config.grid[r][c].travel.split(","),
-                        function (index, value) {
-                            config.grid[r][c][value] = true;
-                        }
-                    );
+                    var setPaths = function (index, value) {
+                        config.grid[r][c][value] = true;
+                    };
+                    $.each(config.grid[r][c].travel.split(","), setPaths);
 
                 } else {
 
                     //No path data attribute? Go by adjacency
                     for (var direction in config.compassDict) {
                         if (config.compassDict.hasOwnProperty(direction)) {
-                            //TODO: Find a faster way of doing this
                             var adjacentCellSelector =
-                                    "[data-row=" + (r + config.compassDict[direction].offsetR) +
-                                        "][data-col=" + (c + config.compassDict[direction].offsetC) + "]",
+                                    "[data-row=" + (r + config.compassDict[direction].offset.row) +
+                                        "][data-col=" + (c + config.compassDict[direction].offset.col) + "]",
                                 travelProp = {};
 
-                            if ($(adjacentCellSelector).length != 0) {
+                            if ($(adjacentCellSelector).length !== 0) {
                                 travelProp[direction] = true;
                                 setCellProperties(r, c, travelProp);
                             } else {
@@ -671,44 +673,7 @@
         var $active = $this.find(config.startSelector);
         $active.toggleClass("active");
 
-        updateActiveCell(parseInt($active.data("row")), parseInt($active.data("col")));
-
-        if ($("[data-thumb=self]").length > 0 && config.html2Canvas) {
-            html2canvas($("#container"), {
-                useOverflow: true,
-                onpreloaded: function () {
-                    $("#lattice-wrap").css("overflow", "visible");
-                    $this.css({
-                        "margin-top": "0px",
-                        "margin-left": "0px"
-                    });
-                },
-                onrendered: function (canvas, rows, cols) {
-                    var style = $("<style>.lattice-thumbnail-self {" +
-                        " background-image: url(" +
-                        canvas.toDataURL("image/png") +
-                        "); }</style>");
-                    $("html > head").append(style);
-
-                    $("#lattice-wrap").css("overflow", "hidden");
-                    config.gridImage = canvas.toDataURL("image/png");
-
-                    $this.css({
-                        "margin-top": -( config.active.row *
-                            config.sliderHeight ) + "px",
-                        "margin-left": -( config.active.col *
-                            config.sliderWidth ) + "px"
-                    });
-                    for (var i = 0; i < config.selfThumbedCells.length; i++) {
-                        var cell = config.selfThumbedCells[i];
-                        var selector = "#L" +
-                            cell.row + "-" + cell.col +
-                            " .lattice-thumbnail";
-                        $(selector).addClass("lattice-thumbnail-self");
-                    }
-                }
-            });
-        }
+        updateActiveCell(parseInt($active.data("row"), 10), parseInt($active.data("col"), 10));
 
         //Move the container to the chosen slide to be the first active.
         $this.css({
@@ -752,35 +717,31 @@
                             crop = config.grid[r][c].crop,
                             scale = config.grid[r][c].scale;
 
-                        if (scale.indexOf("height") > -1 &&
-                            scale.indexOf("width") > -1) {
-                            if ($element.is("images")) {
-                                var widthE = config.grid[r][c].oWidth,
-                                    heightE = config.grid[r][c].oHeight,
-                                    widthI = $inner.width(),
-                                    heightI = $inner.height();
 
-                                var ratioW = heightE / widthE,
-                                    ratioH = widthE / heightE;
+                        if (scale.indexOf("height") > -1 && scale.indexOf("width") > -1) {
+                            var widthE = "100%",
+                                heightE = "100%";
+                            if ($element.is("images")) {
+                                var widthI = $inner.width(),
+                                    heightI = $inner.height();
+                                widthE = config.grid[r][c].oWidth;
+                                heightE = config.grid[r][c].oHeight;
 
                                 if (widthE > widthI) {
                                     widthE = widthI;
-                                    heightE = widthE * ratioW;
+                                    heightE = widthE * (heightE / widthE);
                                 }
 
                                 if (heightE > heightI) {
                                     heightE = heightI;
-                                    widthE = heightE * ratioH;
+                                    widthE = heightE * (widthE / heightE);
                                 }
-                            } else {
-                                var widthE = "100%",
-                                    heightE = "100%";
                             }
 
                             $element.css({
                                 "width": widthE,
                                 "height": heightE
-                            })
+                            });
 
                         }
 
@@ -803,7 +764,7 @@
 
         $("#lattice-wrap").bind("mousemove", function(e){
             var wrapOffset = $("#lattice-wrap").offset(),
-                mapPosition = $("#lattice-thumbnail-map").position();
+                mapPosition = $(config.selectors.thumbnailMap).position();
 
             var mouseX = e.pageX - wrapOffset.left,
                 mouseY = e.pageY - wrapOffset.top;
@@ -824,22 +785,21 @@
                 hideThumbnailMap();
             }
         });
-
-        $(".lattice-grid-link").click(function (e) {
-
+        $(config.selectors.gridLink).click(function (e) {
             e.preventDefault();
+
             if (config.inMotion) {
-                return;
+                if(!config.interruptMotion){
+                    return;
+                }
+                clearInterval(config.interval);
             }
 
-            config.inMotion = true;
             var coords = $(this)[0].id.replace("L", "").split("-");
-            var path = solveGrid(
+            slideOnPath(getPath(
                 config.grid[config.active.row][config.active.col],
                 config.grid[coords[0]][coords[1]], config.grid
-            );
-
-            slideOnPath(path);
+            ));
         });
 
     }; //end init method
@@ -849,7 +809,7 @@
             if (!$.data(this, "plugin_" + pluginName)) {
 
                 if ( methods[methodOrOptions] ) {
-                    return methods[ methodO1rOptions ].apply( this, Array.prototype.slice.call( arguments, 1 ));
+                    return methods[methodOrOptions].apply( this, Array.prototype.slice.call( arguments, 1 ));
                 } else if ( typeof methodOrOptions === "object" || ! methodOrOptions ) {
                     // Default to "init"
                     $.data(this, "plugin_" + pluginName, new Plugin( this, methodOrOptions ));
