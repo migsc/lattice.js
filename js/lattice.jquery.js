@@ -13,6 +13,36 @@
 
     var pluginName = "lattice",
         config = {},
+        methods = { //Public methods
+            setCell: function(row, col, properties){
+                setCellProperties(row, col, properties);
+            },
+            setFullscreen: function(command){
+                if(command === "on"){
+                    activateFullScreen();
+                } else {
+                    deactivateFullScreen();
+                }
+            },
+            setThumbnailMap: function(command){
+                if(command === "show"){
+                    showThumbnailMap();
+                } else {
+                    hideThumbnailMap();
+                }
+            },
+            slideTo: function(row, col){
+                if(row === config.active.row && col === config.active.col) {
+                    return;
+                }
+
+                slideOnPath(getPath(
+                    config.grid[config.active.row][config.active.col],
+                    config.grid[row][col], config.grid
+                ));
+            }
+
+        },
         defaults = { //Public configuration
             startSelector: ">:first-child",
             fullscreen: false,
@@ -33,6 +63,9 @@
             interruptMotion: false,
             selectors: {
                 wrapper: "#lattice-wrap",
+                cell: "#lattice-cell-%s",
+                cells: ".lattice-cell",
+                cellInner: ".lattice-cell-inner",
                 gridLink: ".lattice-grid-link",
                 thumbnail: ".lattice-thumbnail",
                 thumbnailEmpty: ".lattice-thumbnail-empty",
@@ -42,8 +75,6 @@
             },
             sliderWidth: "100%",
             sliderHeight: "600px"
-        },
-        methods = { //Public methods
         },
         privates = { //Private configuration
             grid: [],
@@ -59,7 +90,7 @@
                     css: {
                         property:"margin-top",
                         units: "px",
-                        multiplier: function(){ return $("#lattice-wrap").height(); }
+                        multiplier: function(wrapperSelector){ return $(wrapperSelector).height(); }
                     },
                     offset: {
                         row: -1,
@@ -71,7 +102,7 @@
                     css: {
                         property:"margin-top",
                         units: "px",
-                        multiplier: function(){ return $("#lattice-wrap").height(); }
+                        multiplier: function(wrapperSelector){ return $(wrapperSelector).height(); }
                     },
                     offset: {
                         row: 1,
@@ -118,9 +149,9 @@
             pathCache: {}
         };
 
-
     var activateFullScreen = function(){
-        var slider = $("#lattice-wrap");
+        var slider = $(config.selectors.wrapper);
+
         if (slider[0].requestFullScreen) {
             slider[0].requestFullScreen();
         } else if (slider[0].mozRequestFullScreen) {
@@ -128,16 +159,15 @@
         } else if (slider[0].webkitRequestFullscreen) {
             slider[0].webkitRequestFullscreen();
         }
-
     };
 
     var deactivateFullScreen = function(){
-        var slider = $("#lattice-wrap");
+        var slider = $(config.selectors.wrapper);
         if (slider[0].cancelFullscreen) {
             slider[0].cancelFullscreen();
         } else if (slider[0].mozRequestFullScreen) {
             slider[0].mozCancelFullScreen();
-        } else if (slider[0].webkitRequestFullscreen) {
+        } else if (slider[0].webkitCancelFullscreen) {
             slider[0].webkitCancelFullscreen();
         }
     };
@@ -147,8 +177,8 @@
             .toggleClass(config.selectors.thumbnailActive.replace(ID_OR_CLASS_PREFIX, ""));
         var selector =
             config.selectors.thumbnailMap + " " +
-            config.selectors.gridLink +
-            "#L" + row + "-" + col + " " + config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, "");
+            config.selectors.gridLink + "#L" + row + "-" + col + " " +
+            config.selectors.thumbnail;
         $(selector).toggleClass(config.selectors.thumbnailActive.replace(ID_OR_CLASS_PREFIX, ""));
     };
 
@@ -201,7 +231,7 @@
         var result = {},
             cd = config.compassDict[direction];
         var dimensionValue = cd.dimension === "row" ? row : col;
-        result[cd.css.property] = -((dimensionValue + cd.offset[cd.dimension]) * cd.css.multiplier()) + cd.css.units;
+        result[cd.css.property] = -((dimensionValue + cd.offset[cd.dimension]) * cd.css.multiplier(config.selectors.wrapper)) + cd.css.units;
         return result;
     };
 
@@ -376,7 +406,8 @@
                 float: "left",
                 width: config.thumbnailWidth + "px",
                 height: config.thumbnailHeight + "px",
-                margin: config.thumbnailSpacing + "px"
+                margin: config.thumbnailSpacing + "px",
+                opacity: "0.4"
             }, customCss))
             .wrap("<a class=\"" + config.selectors.gridLink.replace(ID_OR_CLASS_PREFIX, "") + "\" href=\"#\"" + idValue + " ></a>");
     };
@@ -408,20 +439,18 @@
     function Plugin( element, options ) {
         this.element = element;
         config = $.extend( {}, defaults, options, privates) ;
-        this.init();
+         this.init();
     }
 
     Plugin.prototype.init = function () {
         //Add some global stylings to the document
-        $("body").append(function () {
-            var block = "";
-            for (var section in config.styles) {
-                if (config.styles.hasOwnProperty(section)) {
-                    block += config.styles[section];
-                }
-            }
-            return "<style type=\"text/css\">" + block + "</style>";
-        });
+        $("body").append(
+            "<style type=\"text/css\">" +
+            config.selectors.wrapper + ":-moz-full-screen{ height:100% !important; }" +
+            config.selectors.wrapper + ":-webkit-full-screen{ height:100% !important; }" +
+            config.selectors.wrapper + ":full-screen{ height:100% !important; }" +
+            "</style>"
+        );
 
         // Cache "this"
         var $this = $(this.element);
@@ -458,8 +487,8 @@
             width: config.sliderWidth,
             height: config.sliderHeight
         }).attr({
-            allowfullscreen: true
-        });
+                allowfullscreen: true
+            });
 
         if (config.thumbnailMapEnabled) {
             //Add the thumbnail map
@@ -532,7 +561,6 @@
                     } else if (thumbData && thumbData !== "self") {
 
                         //Some selector for an image in the thumb-data attr
-                        //TODO: Make this happen
                         addThumbnailToMap({},
                             $("<div>").append(
                                 $(thumbData)
@@ -576,26 +604,31 @@
 
                     var cellStyling =
                             "width:" + (1 / (config.gridCols + 1)) * 100 + "%;" +
-                            "height:" + (1 / (config.gridRows + 1)) * 100 + "%;" +
-                            "position:absolute;" +
-                            "left:" + (c / (config.gridCols + 1)) * 100 + "%;" +
-                            "top:" + (r / (config.gridRows + 1)) * 100 + "%;",
+                                "height:" + (1 / (config.gridRows + 1)) * 100 + "%;" +
+                                "position:absolute;" +
+                                "left:" + (c / (config.gridCols + 1)) * 100 + "%;" +
+                                "top:" + (r / (config.gridRows + 1)) * 100 + "%;",
                         innerCellStyling =
                             "position:relative;" +
-                            "overflow:hidden;" +
-                            "height:100%;" +
-                            "width:100%;" +
-                            "margin:0";
+                                "overflow:hidden;" +
+                                "height:100%;" +
+                                "width:100%;" +
+                                "margin:0";
 
                     $reference.wrap(
-                        "<div id=\"cell" + r + "-" + c + "\" class=\"lattice-cell\" style=\"" + cellStyling + "\">" +
-                            "<div class=\"lattice-cell-inner\" style=\"" + innerCellStyling + "\"></div>" +
+                        "<div id=\"" + config.selectors.cell.replace(ID_OR_CLASS_PREFIX, "").replace("%s", r + "-" + c) +
+                            "\" class=\"" + config.selectors.cells.replace(ID_OR_CLASS_PREFIX, "") +
+                            "\" style=\"" + cellStyling + "\">" +
+                            "<div class=\"" + config.selectors.cellInner.replace(ID_OR_CLASS_PREFIX, "") +"\" style=\"" + innerCellStyling + "\"></div>" +
                         "</div>"
                     );
 
                     var scale = config.grid[r][c].scale;
                     if (scale.indexOf("height") > -1 && scale.indexOf("width") > -1) {
-
+                        $reference.css({
+                            "width": "100%",
+                            "height": "100%"
+                        });
                     } else if (scale.indexOf("width") > -1) {
                         $reference.css({
                             "width": "100%",
@@ -626,8 +659,9 @@
                     for (var direction in config.compassDict) {
                         if (config.compassDict.hasOwnProperty(direction)) {
                             var adjacentCellSelector =
-                                    "[data-row=" + (r + config.compassDict[direction].offset.row) +
-                                        "][data-col=" + (c + config.compassDict[direction].offset.col) + "]",
+                                    config.selectors.wrapper +
+                                    " [data-row=" + (r + config.compassDict[direction].offset.row) +
+                                    "][data-col=" + (c + config.compassDict[direction].offset.col) + "]",
                                 travelProp = {};
 
                             if ($(adjacentCellSelector).length !== 0) {
@@ -654,14 +688,14 @@
             var hGutter = (config.gutter.number / config.sliderWidth) * 100,
                 vGutter = (config.gutter.number / config.sliderHeight) * 100;
 
-            $(".lattice-cell-inner").css({
+            $(config.selectors.cellInner).css({
                 "margin": "0 auto",
                 "width": 100 - 2 * (hGutter) + "%",
                 "height": 100 - 2 * (vGutter) + "%",
                 "top": vGutter + "% "
             });
         } else if (config.gutter.type === "%") {
-            $(".lattice-cell-inner").css({
+            $(config.selectors.cellInner).css({
                 "margin": "0 auto",
                 "width": 100 - (2 * config.gutter.number) + "%",
                 "height": 100 - (2 * config.gutter.number) + "%",
@@ -713,7 +747,7 @@
                     if (config.grid[r][c]) {
 
                         var $element = config.grid[r][c].element;
-                        var $inner = $element.parent(".lattice-cell-inner"),
+                        var $inner = $element.parent(config.selectors.cellInner),
                             crop = config.grid[r][c].crop,
                             scale = config.grid[r][c].scale;
 
@@ -762,18 +796,18 @@
 
         }).trigger("resize");
 
-        $("#lattice-wrap").bind("mousemove", function(e){
-            var wrapOffset = $("#lattice-wrap").offset(),
+        $(config.selectors.wrapper).bind("mousemove", function(e){
+            var wrapOffset = $(config.selectors.wrapper).offset(),
                 mapPosition = $(config.selectors.thumbnailMap).position();
 
             var mouseX = e.pageX - wrapOffset.left,
                 mouseY = e.pageY - wrapOffset.top;
 
             var bounds = [
-                    mapPosition.left,
-                    mouseX,
-                    mapPosition.left + config.thumbnailMapWidth
-                ].sort(config.compareNumbers).concat([
+                mapPosition.left,
+                mouseX,
+                mapPosition.left + config.thumbnailMapWidth
+            ].sort(config.compareNumbers).concat([
                     mapPosition.top,
                     mouseY,
                     mapPosition.top + config.thumbnailMapHeight
@@ -785,6 +819,7 @@
                 hideThumbnailMap();
             }
         });
+
         $(config.selectors.gridLink).click(function (e) {
             e.preventDefault();
 
@@ -805,18 +840,15 @@
     }; //end init method
 
     $.fn[pluginName] = function(methodOrOptions){
+        var someMethodArguments = arguments;
         return this.each(function () {
-            if (!$.data(this, "plugin_" + pluginName)) {
-
-                if ( methods[methodOrOptions] ) {
-                    return methods[methodOrOptions].apply( this, Array.prototype.slice.call( arguments, 1 ));
-                } else if ( typeof methodOrOptions === "object" || ! methodOrOptions ) {
-                    // Default to "init"
-                    $.data(this, "plugin_" + pluginName, new Plugin( this, methodOrOptions ));
-                } else {
-                    $.error( "Method " +  methodOrOptions + " does not exist on jQuery." + pluginName );
-                }
-
+            if ( methods[methodOrOptions] ) {
+                return methods[methodOrOptions].apply( this, Array.prototype.slice.call( someMethodArguments, 1 ));
+            } else if ( typeof methodOrOptions === "object" || ! methodOrOptions ) {
+                // Default to "init"
+                $.data(this, "plugin_" + pluginName, new Plugin( this, methodOrOptions ));
+            } else {
+                $.error( "Method " +  methodOrOptions + " does not exist on jQuery." + pluginName );
             }
         });
     };

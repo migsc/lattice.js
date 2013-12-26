@@ -1,4 +1,4 @@
-@import url(https://fonts.googleapis.com/css?family=Lato:300italic,700italic,300,700);
+/*@import url(https://fonts.googleapis.com/css?family=Lato:300italic,700italic,300,700);*/
 
 body {
   padding:50px;
@@ -242,7 +242,7 @@ p{
 }
 
 
-.lattice-thumbnail-active{
+.lattice-thumbnail-active-1{
     transition:background-color 2s;
     -webkit-transition:background-color 2s;
     opacity: 1.0 !important;
@@ -257,7 +257,7 @@ p{
     margin-right: auto;
 }
 
-#lattice-wrap{
+#lattice-wrap-1, #lattice-wrap-2{
     background: url('../images/bg.jpg');
     margin-left: auto;
     margin-right: auto;
