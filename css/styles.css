@@ -242,7 +242,7 @@ p{
 }
 
 
-.lattice-thumbnail-active-1{
+.lattice-thumbnail-active{
     transition:background-color 2s;
     -webkit-transition:background-color 2s;
     opacity: 1.0 !important;

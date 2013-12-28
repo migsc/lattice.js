@@ -36,16 +36,20 @@
                     return;
                 }
 
-                slideOnPath(getPath(
+                var path = getPath(
                     config.grid[config.active.row][config.active.col],
                     config.grid[row][col], config.grid
-                ));
+                );
+                config.onPathSolved(path);
+                slideOnPath(path);
             }
 
         },
         defaults = { //Public configuration
             startSelector: ">:first-child",
             fullscreen: false,
+            sliderWidth: "100%",
+            sliderHeight: "600px",
             speed : 1000,
             crop: "center",
             scale: "none",
@@ -65,6 +69,7 @@
                 wrapper: "#lattice-wrap",
                 cell: "#lattice-cell-%s",
                 cells: ".lattice-cell",
+                cellActive: ".lattice-cell-active",
                 cellInner: ".lattice-cell-inner",
                 gridLink: ".lattice-grid-link",
                 thumbnail: ".lattice-thumbnail",
@@ -73,8 +78,14 @@
                 thumbnailMap: "#lattice-thumbnail-map",
                 container: ".lattice-container"
             },
-            sliderWidth: "100%",
-            sliderHeight: "600px"
+            //Callbacks
+            onSlide: function(fromCell, toCell, prevCell, isAdjacentToDestination){},
+            onSlidePathStarted: function(){},
+            onSlidePathEnded: function(){},
+            onUpdatedCell: function(cellProperties, row, col){},
+            onActiveThumbnailChange: function(element, row, col){},
+            onPathSolved: function(path){},
+            onInit: function(grid){}
         },
         privates = { //Private configuration
             grid: [],
@@ -159,6 +170,7 @@
         } else if (slider[0].webkitRequestFullscreen) {
             slider[0].webkitRequestFullscreen();
         }
+
     };
 
     var deactivateFullScreen = function(){
@@ -170,6 +182,7 @@
         } else if (slider[0].webkitCancelFullscreen) {
             slider[0].webkitCancelFullscreen();
         }
+
     };
 
     var updateActiveThumbnail = function (row, col) {
@@ -180,11 +193,9 @@
             config.selectors.gridLink + "#L" + row + "-" + col + " " +
             config.selectors.thumbnail;
         $(selector).toggleClass(config.selectors.thumbnailActive.replace(ID_OR_CLASS_PREFIX, ""));
-    };
-
-    var updateActiveCell = function (row, col) {
-        config.active.row = row;
-        config.active.col = col;
+        if(config.ready){
+            config.onActiveThumbnailChange($(selector), row, col);
+        }
     };
 
     var hideThumbnailMap = function () {
@@ -244,37 +255,41 @@
         var index = 1,
             isAdjacentToDestination = ( config.speed === path.length - 2 );
 
-        updateActiveThumbnail( path[index].row, path[index].col);
+        config.active.row = path[index].row;
+        config.active.col = path[index].col;
+        config.onSlidePathStarted();
         animateSlide( path[index-1], path[index], false, isAdjacentToDestination);
 
         config.interval = window.setInterval(function(){
 
             if( (index+1) === path.length){
                 clearInterval(config.interval);
+                config.onSlidePathEnded();
                 config.inMotion = false;
                 return;
             }
 
-            var prevNode = index > 0 ? path[index-1] : false,
+            var prevCell = index > 0 ? path[index-1] : false,
                 isAdjacentToDestination = ( index === path.length - 2 );
 
             updateActiveThumbnail( path[index+1].row, path[index+1].col);
-            animateSlide( path[index], path[index+1], prevNode, isAdjacentToDestination);
+            animateSlide( path[index], path[index+1], prevCell, isAdjacentToDestination);
             index++;
 
         }, config.speed);
 
     };
 
-    var animateSlide = function (fromNode, toNode, prevNode, isAdjacentToDestination){
+    var animateSlide = function (fromCell, toCell, prevCell, isAdjacentToDestination){
 
         var easing = isAdjacentToDestination ? config.adjacentEasing : config.nonAdjacentEasing,
-            animOptions = toCss(fromNode.directionTaken, fromNode.row, fromNode.col);
+            animOptions = toCss(fromCell.directionTaken, fromCell.row, fromCell.col);
 
+        config.onSlide(fromCell, toCell, prevCell, isAdjacentToDestination);
         $(config.selectors.container).animate(animOptions, config.speed, easing);
 
-        config.active.col = toNode.col;
-        config.active.row = toNode.row;
+        config.active.col = toCell.col;
+        config.active.row = toCell.row;
     };
 
     var parseStyle = function (value) {
@@ -427,6 +442,10 @@
             if (props.hasOwnProperty(propName)) {
                 config.grid[row][col][propName] = props[propName];
             }
+        }
+
+        if(config.ready){
+            config.onUpdatedCell(config.grid[row][col], row, col);
         }
     };
 
@@ -705,9 +724,9 @@
 
         //Set the active slide
         var $active = $this.find(config.startSelector);
-        $active.toggleClass("active");
-
-        updateActiveCell(parseInt($active.data("row"), 10), parseInt($active.data("col"), 10));
+        $active.toggleClass(config.selectors.cellActive.replace(ID_OR_CLASS_PREFIX, ""));
+        config.active.row = parseInt($active.data("row"), 10);
+        config.active.col = parseInt($active.data("col"), 10);
 
         //Move the container to the chosen slide to be the first active.
         $this.css({
@@ -831,11 +850,17 @@
             }
 
             var coords = $(this)[0].id.replace("L", "").split("-");
-            slideOnPath(getPath(
+            var path = getPath(
                 config.grid[config.active.row][config.active.col],
-                config.grid[coords[0]][coords[1]], config.grid
-            ));
+                config.grid[coords[0]][coords[1]],
+                config.grid
+            );
+            config.onPathSolved(path);
+            slideOnPath(path);
         });
+
+        config.ready = true;
+        config.onInit(config.grid);
 
     }; //end init method
 
