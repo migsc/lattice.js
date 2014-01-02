@@ -66,7 +66,7 @@
             gutter: "1%",
             interruptMotion: false,
             selectors: {
-                wrapper: "#lattice-wrap",
+                wrapperId: "#lattice-wrap",
                 cell: "#lattice-cell-%s",
                 cells: ".lattice-cell",
                 cellActive: ".lattice-cell-active",
@@ -161,7 +161,7 @@
         };
 
     var activateFullScreen = function(){
-        var slider = $(config.selectors.wrapper);
+        var slider = $(config.selectors.wrapperId);
 
         if (slider[0].requestFullScreen) {
             slider[0].requestFullScreen();
@@ -174,7 +174,7 @@
     };
 
     var deactivateFullScreen = function(){
-        var slider = $(config.selectors.wrapper);
+        var slider = $(config.selectors.wrapperId);
         if (slider[0].cancelFullscreen) {
             slider[0].cancelFullscreen();
         } else if (slider[0].mozRequestFullScreen) {
@@ -242,7 +242,7 @@
         var result = {},
             cd = config.compassDict[direction];
         var dimensionValue = cd.dimension === "row" ? row : col;
-        result[cd.css.property] = -((dimensionValue + cd.offset[cd.dimension]) * cd.css.multiplier(config.selectors.wrapper)) + cd.css.units;
+        result[cd.css.property] = -((dimensionValue + cd.offset[cd.dimension]) * cd.css.multiplier(config.selectors.wrapperId)) + cd.css.units;
         return result;
     };
 
@@ -253,11 +253,8 @@
         }
 
         var index = 1,
-            isAdjacentToDestination = ( config.speed === path.length - 2 );
-
-        config.active.row = path[index].row;
-        config.active.col = path[index].col;
-        config.onSlidePathStarted();
+            isAdjacentToDestination = ( 0 === path.length - 2 );
+        updateActiveThumbnail( path[index].row, path[index].col);
         animateSlide( path[index-1], path[index], false, isAdjacentToDestination);
 
         config.interval = window.setInterval(function(){
@@ -331,10 +328,8 @@
         config.inMotion = true;
 
         if (config.usePathCaching && config.pathCache.hasOwnProperty(cacheIndex)) {
-            console.log(config.pathCache[cacheIndex]);
             return config.pathCache[cacheIndex];
         }
-        console.log(config.pathCache[cacheIndex]);
         resetGridVisits();
 
         if (depthFirstSearch(start, end, grid, path) !== null) {
@@ -370,30 +365,20 @@
 
         for(var i = 0; i < checkOrder.length; i++){
             direction = checkOrder[i];
-            if (generalCompass.hasOwnProperty(direction) && generalCompass[direction]) {
+            if (generalCompass.hasOwnProperty(direction) && generalCompass[direction] &&
+                grid[start.row][start.col][direction] && !generalCompass[direction].visited) {
 
-                lattlog(generalCompass[direction]);
-                lattlog("Checking " + generalCompass[direction].row + ":" +
-                    generalCompass[direction].col + " to the " + direction);
+                grid[start.row][start.col].visited = true;
 
-                if (grid[start.row][start.col][direction] && !generalCompass[direction].visited) {
-
-                    lattlog("Room is open. Going " + direction + ".");
-                    grid[start.row][start.col].visited = true;
-                    if (depthFirstSearch(generalCompass[direction], end, grid, path) !== null) {
-                        grid[start.row][start.col].directionTaken = direction;
-                        path.push(grid[start.row][start.col]);
-                        return path;
-                    }
-
+                if (depthFirstSearch(generalCompass[direction], end, grid, path) !== null) {
+                    grid[start.row][start.col].directionTaken = direction;
+                    path.push(grid[start.row][start.col]);
+                    return path;
                 }
-
-                lattlog("Closed.");
             }
         }
 
-        lattlog("Reached a dead end.");
-        //If we get here, it"s a dead end!
+        //If we get here, it's a dead end!
         return null;
     };
 
@@ -449,12 +434,6 @@
         }
     };
 
-    var lattlog = function (mixed) {
-        if (config.debug && window.console && window.console.log) {
-            window.console.log(mixed);
-        }
-    };
-
     function Plugin( element, options ) {
         this.element = element;
         config = $.extend( {}, defaults, options, privates) ;
@@ -465,9 +444,9 @@
         //Add some global stylings to the document
         $("body").append(
             "<style type=\"text/css\">" +
-            config.selectors.wrapper + ":-moz-full-screen{ height:100% !important; }" +
-            config.selectors.wrapper + ":-webkit-full-screen{ height:100% !important; }" +
-            config.selectors.wrapper + ":full-screen{ height:100% !important; }" +
+            config.selectors.wrapperId + ":-moz-full-screen{ height:100% !important; }" +
+            config.selectors.wrapperId + ":-webkit-full-screen{ height:100% !important; }" +
+            config.selectors.wrapperId + ":full-screen{ height:100% !important; }" +
             "</style>"
         );
 
@@ -497,10 +476,10 @@
                 "height": (config.gridRows + 1) * 100 + "%"
             }).addClass(config.selectors.container.replace(ID_OR_CLASS_PREFIX, ""))
             .wrap(
-                "<div id=\"" + config.selectors.wrapper.replace(ID_OR_CLASS_PREFIX, "") + "\"></div>"
+                "<div id=\"" + config.selectors.wrapperId.replace(ID_OR_CLASS_PREFIX, "") + "\"></div>"
             );
 
-        $(config.selectors.wrapper).css({
+        $(config.selectors.wrapperId).css({
             position: "relative",
             overflow: "hidden",
             width: config.sliderWidth,
@@ -530,7 +509,7 @@
                         return config.thumbnailMapHeight;
                     }
                 })
-                .appendTo(config.selectors.wrapper);
+                .appendTo(config.selectors.wrapperId);
         }
 
 
@@ -678,7 +657,7 @@
                     for (var direction in config.compassDict) {
                         if (config.compassDict.hasOwnProperty(direction)) {
                             var adjacentCellSelector =
-                                    config.selectors.wrapper +
+                                    config.selectors.wrapperId +
                                     " [data-row=" + (r + config.compassDict[direction].offset.row) +
                                     "][data-col=" + (c + config.compassDict[direction].offset.col) + "]",
                                 travelProp = {};
@@ -815,8 +794,8 @@
 
         }).trigger("resize");
 
-        $(config.selectors.wrapper).bind("mousemove", function(e){
-            var wrapOffset = $(config.selectors.wrapper).offset(),
+        $(config.selectors.wrapperId).bind("mousemove", function(e){
+            var wrapOffset = $(config.selectors.wrapperId).offset(),
                 mapPosition = $(config.selectors.thumbnailMap).position();
 
             var mouseX = e.pageX - wrapOffset.left,
@@ -878,6 +857,4 @@
         });
     };
 
-
 })(jQuery, window, document);
-
