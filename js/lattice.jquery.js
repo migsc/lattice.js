@@ -425,7 +425,9 @@
 
         for (var propName in props) {
             if (props.hasOwnProperty(propName)) {
-                config.grid[row][col][propName] = props[propName];
+                if(config.grid[row][col]){
+                    config.grid[row][col][propName] = props[propName];
+                }
             }
         }
 
@@ -719,18 +721,17 @@
         //Some more setup for the grid, now that all the cells are defined
         for (var rows = 0; rows <= config.gridRows; rows++) {
             for (var cols = 0; cols <= config.gridCols; cols++) {
-
-                config.grid[rows][cols].adjacents = {
-                    north: (rows - 1) < 0 ? false : config.grid[rows - 1][cols],
-                    south: (rows + 1) >= config.grid.length ?
-                        false : config.grid[rows + 1][cols],
-                    east: (cols + 1) >= config.grid[0].length ?
-                        false : config.grid[rows][cols + 1],
-                    west: (cols - 1) < 0 ?
-                        false : config.grid[rows][cols - 1]
-                };
-
-
+                if(config.grid[rows][cols]) {
+                        config.grid[rows][cols].adjacents = {
+                        north: (rows - 1) < 0 ? false : config.grid[rows - 1][cols],
+                        south: (rows + 1) >= config.grid.length ?
+                            false : config.grid[rows + 1][cols],
+                        east: (cols + 1) >= config.grid[0].length ?
+                            false : config.grid[rows][cols + 1],
+                        west: (cols - 1) < 0 ?
+                            false : config.grid[rows][cols - 1]
+                    };
+                }
             }
         }
 
