@@ -383,9 +383,13 @@
     };
 
     var resetGridVisits = function () {
-        for (var rows = 0; rows <= config.gridRows; rows++) {
-            for (var cols = 0; cols <= config.gridCols; cols++) {
-                config.grid[rows][cols].visited = false;
+        console.log("[resetGridVisits]", config.grid);
+        for (var r = 0; r <= config.gridRows; r++) {
+            for (var c = 0; c <= config.gridCols; c++) {
+                if(config.grid[r][c]){
+                    console.log("[resetGridVistis] Resetting row-col: ", r, c);
+                    config.grid[r][c].visited = false;
+                }
             }
         }
     };
