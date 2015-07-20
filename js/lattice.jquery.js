@@ -7,7 +7,6 @@
 
 ;(function($, window, document, undefined) {
 
-    "use strict";
 
     var ID_OR_CLASS_PREFIX = /\.|#/;
 
@@ -554,13 +553,14 @@
                      * positioning for the actual element.
                      */
                     var thumbData = $reference.data("thumb");
-                    if (thumbData === "self" && $reference.is("images")) {
+
+                    if (thumbData === "self" /*&& $reference.is("img")*/ ) {
 
                         //The element itself is an image and will be thumbed
-                        var thumb = $("<images class=\"" + config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, "") + "\">");
+                        var thumb = $("<img class=\"" + config.selectors.thumbnail.replace(ID_OR_CLASS_PREFIX, "") + "\">");
                         thumb.attr("src", $reference.attr("src"));
-
-                        addThumbnailToMap({}, thumb, clearValue, r, c);
+                        console.log(thumb[0].outerHTML);
+                        addThumbnailToMap({}, thumb[0].outerHTML, clearValue, r, c);
 
                     } else if (thumbData && thumbData !== "self") {
 
