@@ -3,11 +3,11 @@ lattice
 
 A jQuery plugin that creates a 2-dimensional HTML grid slider from cell elements in a container.
 
-#Demos
+## Demos
 
-The plugin's [page](http://mchateloin.github.io/lattice.js/) with a list of features. Documentation coming soon.
+The plugin's [page](http://migsc.github.io/lattice.js/) with a list of features. Documentation coming soon.
 
-#Contact
+## Contact
 
 Miguel Chateloin
 
